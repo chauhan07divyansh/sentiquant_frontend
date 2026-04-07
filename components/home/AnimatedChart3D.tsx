@@ -1,14 +1,9 @@
 'use client'
 
-// 3D-SHOWCASE: Canvas stock chart that draws itself when scrolled into view.
-// Uses a deterministic price walk so SSR and client produce identical data.
-// Under prefers-reduced-motion, renders the final state immediately.
-
 import { useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils/cn'
 import { useInView } from '@/lib/animations'
 
-// 3D-SHOWCASE: LCG pseudo-random walk — same output on every render
 function makePriceData(count: number, seed = 42): number[] {
   let v = 100
   let s = seed
@@ -41,7 +36,6 @@ export function AnimatedChart3D() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // 3D-SHOWCASE: Size canvas with DPR for crisp rendering on retina screens
     const dpr = window.devicePixelRatio || 1
     const W   = canvas.offsetWidth
     const H   = canvas.offsetHeight
@@ -56,13 +50,11 @@ export function AnimatedChart3D() {
     const px = (i: number) => PAD.left + (cw / (DATA.length - 1)) * i
     const py = (v: number) => PAD.top  + ch - ((v - MIN_VAL) / (MAX_VAL - MIN_VAL)) * ch
 
-    // 3D-SHOWCASE: ctx passed explicitly so TS closures don't lose the narrowed type
     function draw(c: CanvasRenderingContext2D, progress: number) {
       c.clearRect(0, 0, W, H)
 
       const pts = Math.max(2, Math.round(progress * DATA.length))
 
-      // Grid lines
       c.strokeStyle = 'rgba(255,255,255,0.04)'
       c.lineWidth   = 1
       for (let i = 0; i <= 4; i++) {
@@ -73,7 +65,6 @@ export function AnimatedChart3D() {
         c.stroke()
       }
 
-      // Area fill (brand-cyan → transparent)
       const fillGrad = c.createLinearGradient(0, PAD.top, 0, PAD.top + ch)
       fillGrad.addColorStop(0, 'rgba(6,182,212,0.18)')
       fillGrad.addColorStop(1, 'rgba(6,182,212,0.00)')
@@ -85,7 +76,6 @@ export function AnimatedChart3D() {
       c.closePath()
       c.fill()
 
-      // Line (brand-blue → brand-cyan gradient)
       const lineGrad = c.createLinearGradient(PAD.left, 0, PAD.left + cw, 0)
       lineGrad.addColorStop(0, 'rgba(59,130,246,0.9)')
       lineGrad.addColorStop(1, 'rgba(6,182,212,1.0)')
@@ -94,12 +84,18 @@ export function AnimatedChart3D() {
       c.lineCap     = 'round'
       c.lineJoin    = 'round'
       c.beginPath()
+
+      // ✅ FIXED PART (replaced ternary with if/else)
       for (let i = 0; i < pts; i++) {
-        i === 0 ? c.moveTo(px(i), py(DATA[i])) : c.lineTo(px(i), py(DATA[i]))
+        if (i === 0) {
+          c.moveTo(px(i), py(DATA[i]))
+        } else {
+          c.lineTo(px(i), py(DATA[i]))
+        }
       }
+
       c.stroke()
 
-      // 3D-SHOWCASE: Leading dot with outer ring
       const lx = px(pts - 1)
       const ly = py(DATA[pts - 1])
       c.beginPath()
@@ -116,12 +112,10 @@ export function AnimatedChart3D() {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     if (reduced) {
-      // 3D-SHOWCASE: Immediately show final state under reduced motion
       draw(ctx, 1)
       return
     }
 
-    // 3D-SHOWCASE: Animate draw over DURATION ms with ease-in-out cubic
     const DURATION = 1600
     let start: number | null = null
 
@@ -139,10 +133,8 @@ export function AnimatedChart3D() {
 
   return (
     <div ref={sectionRef} className="relative card rounded-xl overflow-hidden p-5 flex flex-col gap-4 card-3d glow-3d">
-      {/* 3D-SHOWCASE: Top accent line */}
       <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-brand-blue to-brand-cyan" />
 
-      {/* Header */}
       <div className="flex items-start justify-between pt-0.5">
         <div>
           <div className="flex items-center gap-2 mb-0.5">
@@ -157,14 +149,12 @@ export function AnimatedChart3D() {
         </div>
       </div>
 
-      {/* 3D-SHOWCASE: Canvas — sized purely by CSS; JS reads offsetWidth after mount */}
       <canvas
         ref={canvasRef}
         aria-hidden="true"
         style={{ display: 'block', width: '100%', height: 176 }}
       />
 
-      {/* Stat row */}
       <div className="grid grid-cols-3 gap-1.5">
         {[
           { label: 'Entry',   val: '₹3,780', cls: 'text-brand-cyan'  },
