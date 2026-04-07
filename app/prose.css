@@ -1,0 +1,184 @@
+/* ─────────────────────────────────────────────
+   BLOG PROSE STYLES
+   Applied via .prose-custom on blog content.
+   Append this to app/globals.css
+   ───────────────────────────────────────────── */
+
+.prose-custom {
+  color: var(--text-secondary);
+  font-size: 16px;        /* ↑ from 15px — more comfortable long-form reading */
+  line-height: 1.85;      /* ↑ from 1.8 — better vertical rhythm */
+  max-width: 72ch;        /* ↑ from 68ch — slightly wider reading column */
+}
+
+.prose-custom p {
+  margin-bottom: 1.5rem;  /* ↑ from 1.25rem — clear paragraph breaks */
+}
+
+.prose-custom h2 {
+  font-family: var(--font-syne), sans-serif;
+  font-size: 22px;        /* ↑ from 20px — stronger section landmark */
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 3rem;       /* ↑ from 2.5rem — breathing room before sections */
+  margin-bottom: 1rem;    /* ↑ from 0.75rem */
+  letter-spacing: -0.02em;
+}
+
+.prose-custom h3 {
+  font-family: var(--font-syne), sans-serif;
+  font-size: 17px;        /* ↑ from 16px */
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 2rem;       /* ↑ from 1.75rem */
+  margin-bottom: 0.65rem;
+}
+
+.prose-custom blockquote {
+  border-left: 2px solid var(--teal-400);
+  padding-left: 1.25rem;
+  margin: 1.75rem 0;
+  font-style: italic;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.prose-custom ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;           /* ↑ from 0.5rem — list items less cramped */
+}
+
+.prose-custom ul li::before {
+  content: '—';
+  color: #3B82F6;         /* brand-blue (was teal-400) — consistent accent */
+  margin-right: 0.75rem;
+  font-weight: 500;
+}
+
+.prose-custom strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.prose-custom code {
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 13px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 0.15em 0.45em;
+  border-radius: 4px;
+  color: var(--teal-400);
+}
+
+.prose-custom a {
+  color: #3B82F6;                   /* brand-blue for links — consistent CTAs */
+  text-decoration: underline;
+  text-underline-offset: 4px;       /* ↑ from 3px — more space under text */
+  transition: color 0.15s;
+}
+
+.prose-custom a:hover {
+  color: #60a5fa;                   /* blue-400 — subtle lighter hover */
+}
+
+/* ── In-article CTA block ──────────────────── */
+
+.prose-cta {
+  background: rgba(59, 130, 246, 0.07);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-left: 3px solid rgba(59, 130, 246, 0.55); /* accent left bar — draws the eye */
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+  margin: 2.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.prose-cta-title {
+  font-family: var(--font-syne), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.prose-cta-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin: 0 !important;
+}
+
+.prose-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.25rem;
+  margin-top: 0.25rem;
+  background: linear-gradient(to right, #3B82F6, #06B6D4);
+  color: #ffffff !important;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 9px;
+  text-decoration: none !important;
+  width: fit-content;
+  transition: opacity 0.15s;
+  font-family: var(--font-dm-sans), sans-serif;
+}
+
+.prose-cta-btn:hover {
+  opacity: 0.88;
+  color: #ffffff !important;
+}
+
+/* ── Light mode overrides ──────────────────── */
+
+.light .prose-custom {
+  color: #334155;                     /* slate-700 — readable on white */
+}
+
+.light .prose-custom strong {
+  color: #0f172a;                     /* slate-900 — bold text pops */
+}
+
+.light .prose-custom code {
+  background: rgba(59, 130, 246, 0.07);
+  border-color: rgba(59, 130, 246, 0.18);
+  color: #1d4ed8;                     /* blue-700 — accessible on white */
+}
+
+.light .prose-custom a {
+  color: #1d4ed8;                     /* blue-700 — 5.1:1 contrast on white */
+}
+
+.light .prose-custom a:hover {
+  color: #1e40af;                     /* blue-800 */
+}
+
+.light .prose-custom ul li::before {
+  color: #2563eb;                     /* blue-600 on white */
+}
+
+.light .prose-custom blockquote {
+  border-left-color: #06b6d4;
+  color: #475569;
+}
+
+.light .prose-cta {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: rgba(59, 130, 246, 0.25);
+  border-left-color: rgba(59, 130, 246, 0.6);
+}
+
+.light .prose-cta-title {
+  color: #0f172a;
+}
+
+.light .prose-cta-text {
+  color: #475569;
+}
