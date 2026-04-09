@@ -6,7 +6,7 @@ import type {
   CompareResponse,
 } from '@/types/stock.types'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://api.sentiquant.org"
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.sentiquant.org"
 
 // ── Validation ─
 function sanitizeSymbol(symbol: string): string {
