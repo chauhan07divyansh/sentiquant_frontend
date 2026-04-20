@@ -1,49 +1,44 @@
 'use client'
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { type ReactNode, useState, useEffect } from 'react'
 import type { Session } from 'next-auth'
 import dynamic from 'next/dynamic'
 
-// PERF: dynamic import ensures the devtools bundle is fully excluded from the
-//       production JS chunk. A static import + process.env check prevents
-//       rendering but still ships the module bytes to users in prod.
 const ReactQueryDevtools = dynamic(
   () => import('@tanstack/react-query-devtools').then((m) => ({ default: m.ReactQueryDevtools })),
   { ssr: false }
 )
+
 import { useUIStore } from '@/store'
 import { AuthProvider } from '@/components/common/AuthProvider'
 
-// ─────────────────────────────────────────────
-//  QUERY CLIENT CONFIG
-//  Sensible defaults for a financial data app.
-// ─────────────────────────────────────────────
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime:            5 * 60 * 1_000,   // 5 min — matches Flask cache
-        gcTime:               10 * 60 * 1_000,  // 10 min garbage collection
-        refetchOnWindowFocus: false,             // Don't spam Flask on tab switch
+        staleTime:            5 * 60 * 1_000,
+        gcTime:               10 * 60 * 1_000,
+        refetchOnWindowFocus: false,
         refetchOnReconnect:   true,
         retry:                2,
       },
       mutations: {
-        retry: 0,   // Never auto-retry mutations (portfolio generation is expensive)
+        retry: 0,
       },
     },
   })
 }
 
-// ─────────────────────────────────────────────
-//  THEME INJECTOR
-//  Reads Zustand theme and applies to <html>
-// ─────────────────────────────────────────────
 function ThemeInjector() {
   const theme = useUIStore((s) => s.theme)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
     const root = document.documentElement
     if (theme === 'light') {
       root.classList.remove('dark')
@@ -52,17 +47,18 @@ function ThemeInjector() {
       root.classList.remove('light')
       root.classList.add('dark')
     }
-  }, [theme])
+  }, [theme, mounted])
 
   return null
 }
 
-// ─────────────────────────────────────────────
-//  PROVIDERS
-// ─────────────────────────────────────────────
 export function Providers({ children, session }: { children: ReactNode; session?: Session | null }) {
-  // Use useState to avoid sharing queryClient across requests in SSR
   const [queryClient] = useState(() => makeQueryClient())
+
+  // Manually rehydrate Zustand persist after mount to avoid SSR mismatch
+  useEffect(() => {
+    useUIStore.persist?.rehydrate?.()
+  }, [])
 
   return (
     <AuthProvider session={session}>
