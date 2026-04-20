@@ -1,0 +1,1322 @@
+/* ─────────────────────────────────────────────
+   SENTIQUANT — Global Styles
+   Google Fonts loaded via next/font in layout.tsx
+   ───────────────────────────────────────────── */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Custom Properties ────────────────── */
+
+@layer base {
+  :root {
+    /* Backgrounds */
+    --bg-page:       #09090b;   /* surface-950 */
+    --bg-elevated:   #111113;   /* between 950 and 900 */
+    --bg-card:       #18181b;   /* surface-900 */
+    --bg-card-hover: #1e1e22;
+    --bg-overlay:    #27272a;   /* surface-800 */
+    --bg-input:      #18181b;
+
+    /* Borders */
+    --border-subtle:  rgba(255, 255, 255, 0.06);
+    --border-default: rgba(255, 255, 255, 0.09);
+    --border-strong:  rgba(255, 255, 255, 0.15);
+    --border-teal:    rgba(0, 212, 170, 0.25);
+
+    /* Brand */
+    --teal-400:    #00d4aa;
+    --teal-400-10: rgba(0, 212, 170, 0.10);
+    --teal-400-20: rgba(0, 212, 170, 0.20);
+    --indigo-500:    #6366f1;
+    --indigo-500-10: rgba(99, 102, 241, 0.10);
+    --indigo-500-20: rgba(99, 102, 241, 0.20);
+
+    /* Text */
+    --text-primary:   #fafafa;   /* zinc-50 */
+    --text-secondary: #a1a1aa;   /* zinc-400 */
+    --text-tertiary:  #71717a;   /* zinc-500 */
+    --text-disabled:  #3f3f46;   /* zinc-700 */
+
+    /* Status */
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger:  #f43f5e;
+    --info:    #38bdf8;
+
+    /* Sidebar */
+    --sidebar-width:          240px;
+    --sidebar-collapsed-width: 60px;
+
+    /* Header */
+    --header-height: 60px;
+
+    /* Transitions */
+    --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Light mode overrides (for when toggled) */
+  .light {
+    /* Backgrounds: layered warm whites — page < card < elevated gives clear depth */
+    --bg-page:       #f8fafc;   /* slate-50 — warm off-white, not harsh pure white */
+    --bg-elevated:   #ffffff;   /* pure white elevated surfaces (cards pop against page) */
+    --bg-card:       #ffffff;
+    --bg-card-hover: #f0f4f8;   /* cooler, clearly distinct hover */
+    --bg-overlay:    #e2e8f0;   /* slate-200 — softer overlays / hover */
+    --bg-input:      #ffffff;
+
+    /* Borders: must be visible on white; subtle < default < strong */
+    --border-subtle:  rgba(0, 0, 0, 0.08);
+    --border-default: rgba(0, 0, 0, 0.15);
+    --border-strong:  rgba(0, 0, 0, 0.28);
+    --border-teal:    rgba(0, 150, 122, 0.40);  /* deeper teal border on white */
+
+    /* Brand teal: darkened for WCAG AA contrast on white (#00d4aa fails at 2.5:1) */
+    --teal-400:    #00967a;                      /* 4.6:1 on white — passes AA */
+    --teal-400-10: rgba(0, 150, 122, 0.12);
+    --teal-400-20: rgba(0, 150, 122, 0.22);
+
+    /* Text: slate palette — warmer and more readable than zinc on light backgrounds */
+    --text-primary:   #0f172a;  /* slate-900 — warm near-black */
+    --text-secondary: #475569;  /* slate-600 — 7:1 contrast on white */
+    --text-tertiary:  #64748b;  /* slate-500 — clear tertiary (was zinc-500) */
+    --text-disabled:  #94a3b8;  /* slate-400 — visible but clearly muted */
+  }
+}
+
+/* ── Base Resets ──────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    border-color: var(--border-default);
+    /* DESIGN: Firefox scrollbar — matches webkit 6px thin style */
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg-overlay) transparent;
+  }
+
+  /* DESIGN: Base transitions on interactive elements — avoids repetition in every component */
+  button, a {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-duration: 150ms;
+    transition-timing-function: ease;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    overflow-x: hidden;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    font-family: var(--font-dm-sans), sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100dvh;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar       { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--bg-overlay);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3f3f46;
+  }
+
+  /* Selection color */
+  ::selection {
+    background: var(--teal-400-20);
+    color: var(--text-primary);
+  }
+
+  /* Focus ring */
+  :focus-visible {
+    outline: 2px solid #3B82F6;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-syne), sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--text-primary);
+  }
+
+  /* Monospace for financial data */
+  .font-data, code, .tabular {
+    font-family: var(--font-dm-mono), monospace;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+/* ── Component Utilities ─────────────────── */
+@layer components {
+
+  /* Card */
+  /* DESIGN: glass utility — frosted dark panel for modals/popovers */
+  .glass {
+    background: rgba(24, 24, 27, 0.72);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+    /* DESIGN: include transform so hover-lift works with a single transition declaration */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .card:hover {
+    border-color: var(--border-strong);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.07);
+    /* DESIGN: 2px lift + stronger shadow = premium depth on hover */
+    transform: translateY(-2px);
+  }
+  .card-glass {
+    background: rgba(24, 24, 27, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+  }
+
+  /* Input */
+  .input-base {
+    background: var(--bg-input);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: var(--font-dm-sans), sans-serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    width: 100%;
+  }
+  .input-base::placeholder { color: var(--text-tertiary); }
+  .input-base:hover  { border-color: var(--border-strong); }
+  .input-base:focus  {
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    outline: none;
+  }
+  .input-base:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .input-error {
+    border-color: var(--danger) !important;
+    box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.10) !important;
+  }
+
+  /* Button base */
+  .btn-base {
+    align-items: center;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    font-family: var(--font-dm-sans), sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    gap: 6px;
+    justify-content: center;
+    letter-spacing: 0.01em;
+    padding: 9px 16px;
+    position: relative;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .btn-base:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  /* DESIGN: scale(0.95) gives tactile "press" feel — more responsive than 0.98 */
+  .btn-base:active:not(:disabled) { transform: scale(0.95); }
+
+  /* Brand gradient primary */
+  .btn-primary {
+    background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+    box-shadow: 0 1px 3px rgba(59,130,246,0.25), inset 0 1px 0 rgba(255,255,255,0.12);
+    color: #ffffff;
+    font-weight: 600;
+  }
+  .btn-primary:hover:not(:disabled) {
+    opacity: 0.92;
+    box-shadow: 0 4px 16px rgba(59,130,246,0.35);
+    /* DESIGN: micro-scale on primary CTA hover — signals clickability */
+    transform: scale(1.02);
+  }
+
+  /* Ghost */
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--bg-overlay);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+  }
+
+  /* Danger */
+  .btn-danger {
+    background: rgba(244, 63, 94, 0.12);
+    border: 1px solid rgba(244, 63, 94, 0.25);
+    color: #f43f5e;
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: rgba(244, 63, 94, 0.2);
+  }
+
+  /* Badge */
+  .badge {
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid;
+    display: inline-flex;
+    font-family: var(--font-dm-mono), monospace;
+    font-size: 11px;
+    font-weight: 500;
+    gap: 4px;
+    letter-spacing: 0.03em;
+    padding: 2px 8px;
+    text-transform: uppercase;
+  }
+
+  /* Sidebar */
+  .sidebar-link {
+    align-items: center;
+    border-radius: 8px;
+    color: var(--text-tertiary);
+    display: flex;
+    font-size: 13px;
+    font-weight: 500;
+    gap: 10px;
+    padding: 8px 10px;
+    transition: all 0.15s ease;
+    width: 100%;
+  }
+  .sidebar-link:hover {
+    background: var(--bg-overlay);
+    color: var(--text-primary);
+  }
+  .sidebar-link.active {
+    background: rgba(59, 130, 246, 0.08);
+    /* DESIGN: left-border accent only — cleaner than all-sides border, common in premium nav (Linear, Vercel) */
+    border: none;
+    border-left: 3px solid #3B82F6;
+    padding-left: 7px; /* compensate 3px border to keep text alignment */
+    color: #06B6D4;
+  }
+
+  /* Score bar */
+  .score-bar-track {
+    background: var(--bg-overlay);
+    border-radius: 999px;
+    height: 6px;
+    overflow: hidden;
+    width: 100%;
+  }
+  .score-bar-fill {
+    animation: score-fill 1s var(--ease-spring) both;
+    border-radius: 999px;
+    height: 100%;
+  }
+
+  /* Skeleton shimmer */
+  .skeleton {
+    /* DESIGN: linear timing + brighter highlight + will-change for GPU compositing */
+    animation: shimmer 1.6s linear infinite;
+    background: linear-gradient(
+      90deg,
+      var(--bg-overlay) 0%,
+      rgba(255,255,255,0.09) 50%,
+      var(--bg-overlay) 100%
+    );
+    background-size: 400px 100%;
+    border-radius: 6px;
+    will-change: background-position;
+  }
+
+  /* Data table cell */
+  .data-cell {
+    color: var(--text-primary);
+    font-family: var(--font-dm-mono), monospace;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Page header gradient blob */
+  .page-blob {
+    background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(0,212,170,0.12) 0%, transparent 70%);
+    height: 300px;
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 0;
+  }
+
+  /* Dot indicator (live/status) */
+  .dot-live {
+    animation: pulse-soft 2s ease-in-out infinite;
+    background: var(--success);
+    border-radius: 50%;
+    display: inline-block;
+    height: 7px;
+    width: 7px;
+  }
+}
+
+/* ── Utility Layer Extras ─────────────────── */
+@layer utilities {
+  .text-gradient {
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    background-image: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+  }
+
+  .border-gradient {
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    background-image: linear-gradient(var(--bg-card), var(--bg-card)),
+                      linear-gradient(135deg, rgba(0,212,170,0.3), rgba(99,102,241,0.3));
+    background-origin: border-box;
+  }
+
+  /* DESIGN: hover-lift utility — composable on any element that should float on hover */
+  .hover-lift {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .grid-bg {
+    background-image: var(--tw-gradient-to, transparent),
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: auto, 32px 32px, 32px 32px;
+  }
+}
+
+@import './prose.css';
+
+/* ═════════════════════════════════════════════════════════════════
+   LIGHT MODE OVERRIDES
+   Written outside any @layer — unlayered CSS has higher cascade
+   priority than @layer utilities, so these beat hardcoded Tailwind
+   utility classes (text-white, bg-surface-900, etc.) without
+   touching component files.
+   All rules are scoped to .light on <html>.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. Card: shadow-based elevation — definitive rule is in Pass 2 (rule O) ── */
+
+/* ── 2. Glass panels: hardcoded dark rgba → translucent white ── */
+.light .glass,
+.light .card-glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+
+/* ── 3. Skeleton shimmer: white sweep → dark sweep on light bg ── */
+.light .skeleton {
+  background: linear-gradient(
+    90deg,
+    #e2e8f0 0%,       /* slate-200 base */
+    #f1f5f9 50%,      /* slate-100 highlight */
+    #e2e8f0 100%
+  );
+  background-size: 400px 100%;
+}
+
+/* ── 4. Ghost button: nearly-invisible border on white ── */
+.light .btn-ghost {
+  border-color: rgba(0, 0, 0, 0.18);
+  color: #475569;  /* slate-600 */
+}
+.light .btn-ghost:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.26);
+  color: #0f172a;
+}
+
+/* ── 5. Score / progress bar tracks: dark fill on white card ── */
+.light .score-bar-track {
+  background: #e2e8f0;  /* slate-200 */
+}
+
+/* ── 6. Dark bg boxes inside white cards (mock card targets, table rows) ── */
+.light .card [class*="bg-surface-8"] {
+  background-color: #f1f5f9;  /* slate-100 */
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ── 7. Sidebar: bg-surface-950 + border-surface-800 are hardcoded dark ── */
+.light aside[aria-label="Dashboard navigation"] {
+  background-color: #f8fafc;  /* slate-50 */
+  border-right-color: #e2e8f0;
+}
+
+/* ── 8. Navbar: bg-surface-950/90 when scrolled stays near-black in light ── */
+.light header[class*="bg-surface-950"] {
+  background-color: rgba(248, 250, 252, 0.95) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.10) !important;
+}
+/* Mobile menu drop-down uses same dark class */
+.light header div[class*="bg-surface-950"] {
+  background-color: rgba(248, 250, 252, 0.98) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.10) !important;
+}
+
+/* ── 9. Home page sections with hardcoded dark bg overlays ── */
+/* Stats bar (bg-surface-900/40) and How-it-works (bg-surface-900/30) */
+.light section[class*="bg-surface-9"] {
+  background-color: rgba(241, 245, 249, 0.65);  /* slate-100 at 65% */
+  border-top-color: rgba(0, 0, 0, 0.10);
+  border-bottom-color: rgba(0, 0, 0, 0.10);
+}
+
+/* ── 10. Text contrast — override hardcoded Tailwind color utilities ── */
+
+/* text-white on NOW-LIGHT section backgrounds (hero, features, CTA, about) */
+/* Selector avoids sections with a dark bg override (has "bg-surface-9" in class) */
+.light section:not([class*="bg-surface-9"]) .text-white {
+  color: var(--text-primary);
+}
+/* After we lightened bg-surface-9 sections above, their text-white also needs dark */
+.light section[class*="bg-surface-9"] .text-white {
+  color: var(--text-primary);
+}
+/* Card content: TCS symbol, prices, scores on white card background */
+.light .card .text-white {
+  color: var(--text-primary);
+}
+
+/* Washed-out Tailwind surface grays on white backgrounds */
+/* text-surface-400 = #a1a1aa — only 2.85:1 on white (WCAG fail) */
+.light .text-surface-400 {
+  color: #64748b;  /* slate-500 — 4.6:1 on white, passes WCAG AA */
+}
+/* text-surface-300 = #d4d4d8 — near-invisible on white */
+.light .text-surface-300 {
+  color: #475569;  /* slate-600 */
+}
+/* text-surface-200 = #e4e4e7 — invisible on white */
+.light .text-surface-200 {
+  color: #334155;  /* slate-700 */
+}
+/* text-surface-500 — slight boost for better readability */
+.light .text-surface-500 {
+  color: #64748b;  /* slate-500 */
+}
+
+/* ── 11. Sidebar link hover: bg-overlay (#e2e8f0) is already correct ──
+         via CSS var, but explicit hover bg for clarity */
+.light .sidebar-link:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* ── 12. hover-lift: definitive rule is in Pass 2 (rule P) ── */
+
+/* ── 13. Raw inputs with bg-surface-900 render as dark boxes in light mode ── */
+/* FIXED: raw inputs with hardcoded bg-surface-900 render as dark boxes in light mode */
+/* border-default (15% black) used instead of border-subtle (8%) — more visible input borders */
+.light input[class*="bg-surface-9"],
+.light textarea[class*="bg-surface-9"],
+.light select[class*="bg-surface-9"] {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-default) !important;
+}
+
+/* ── 14. hover:text-white and hover:bg-surface-800 invisible in light mode ── */
+/* FIXED: hover:text-white renders as invisible white text in light mode */
+.light .hover\:text-white:hover {
+  color: var(--text-primary) !important;
+}
+
+/* FIXED: hover:bg-surface-800 renders as near-black bg in light mode */
+.light .hover\:bg-surface-800:hover,
+.light .hover\:bg-surface-800\/60:hover {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* FIXED: hover:text-surface-200 and hover:text-surface-300 near-invisible in light mode */
+.light .hover\:text-surface-200:hover,
+.light .hover\:text-surface-300:hover {
+  color: var(--text-secondary) !important;
+}
+
+/* ── 15. text-teal-400 and text-teal-300 Tailwind classes fail WCAG on white ── */
+/* FIXED: Tailwind text-teal-400 = hardcoded #00d4aa, fails WCAG AA on white (2.5:1 contrast). Override to #00967a */
+.light .text-teal-400 {
+  color: #00967a !important;
+}
+
+/* FIXED: text-teal-300 = #1affbd, also fails WCAG on white — already fixed inline on login page, but catch all other instances */
+.light .text-teal-300 {
+  color: #00967a !important;
+}
+
+/* ── 16. Blogs newsletter card — dark gradient persists in light mode ── */
+/* FIXED: from-surface-900 to-surface-950 Tailwind gradient overrides .card background-color in light mode */
+.light [class*="from-surface-9"],
+.light [class*="to-surface-9"] {
+  background-image: none !important;
+}
+.light [class*="from-surface-9"] {
+  background-color: var(--bg-card) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHT MODE — PASS 2: HARDCODED TAILWIND UTILITY OVERRIDES
+   CSS custom property overrides (above) fix var()-based colours.
+   These rules fix Tailwind classes that are hardcoded and never
+   reference CSS vars — surfaces, borders, glows, buttons, badges, etc.
+   All selectors scoped to .light. Zero impact on dark mode.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── A. Brand text: both fail WCAG AA on white ───────────────────────
+   text-brand-cyan  #06B6D4 → 2.5:1  ·  swap to cyan-600  #0891b2 = 4.5:1
+   text-brand-blue  #3B82F6 → 3.0:1  ·  swap to blue-700  #1d4ed8 = 5.1:1  */
+.light .text-brand-cyan { color: #0891b2 !important; }
+.light .text-brand-blue { color: #1d4ed8 !important; }
+
+/* ── B. Surface borders: near-black zinc on white → slate-200/300 ─── */
+.light .border-surface-800,
+.light .border-t-surface-800,
+.light .border-b-surface-800,
+.light .border-r-surface-800,
+.light .border-l-surface-800 { border-color: #e2e8f0 !important; }   /* slate-200 */
+.light .border-surface-700   { border-color: #cbd5e1 !important; }   /* slate-300 */
+
+/* divide- utilities (FAQ, pricing comparison, sidebar dividers) */
+.light .divide-surface-800 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}
+
+/* ── C. Direct bg-surface-9xx classes (Card flat/highlight, Footer) ─ */
+/* Sidebar uses `aside[aria-label=]` rule below which is more specific  */
+.light .bg-surface-950 { background-color: #f8fafc !important; }     /* slate-50 — page bg */
+.light .bg-surface-900 { background-color: #ffffff !important; }     /* white — card bg */
+
+/* ── D. bg-surface-8xx direct + opacity variants ─────────────────────
+   Catches: Badge neutral, EmptyState icon (bg-surface-800/60),
+   StockCard skeleton border, inline box backgrounds.
+   Tooltips excluded via :not(.pointer-events-none).                   */
+.light .bg-surface-800                                           { background-color: #f1f5f9 !important; }
+.light [class*="bg-surface-8"]:not(.pointer-events-none)        { background-color: #f1f5f9 !important; }
+
+/* Re-assert sidebar after broad bg-surface-9xx rule in C */
+.light [aria-label="Dashboard navigation"] {
+  background-color: #f8fafc !important;
+  border-right-color: #e2e8f0 !important;
+}
+
+/* ── E. Sidebar tooltips — intentionally stay dark (standard UX) ──── */
+.light .pointer-events-none[class*="bg-surface-8"] {
+  background-color: #1e293b !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+}
+
+/* ── F. Button secondary: bg-surface-800 pill → light pill ─────────── */
+.light .btn-base[class*="bg-surface-8"] {
+  background-color: #f1f5f9 !important;
+  border-color: rgba(0, 0, 0, 0.14) !important;
+  color: #334155 !important;
+}
+.light .btn-base[class*="bg-surface-8"]:hover:not(:disabled) {
+  background-color: #e2e8f0 !important;
+  border-color: rgba(0, 0, 0, 0.20) !important;
+  color: #0f172a !important;
+}
+
+/* ── G. Hover bg utilities ─────────────────────────────────────────── */
+/* hover:bg-surface-700 → secondary button hover, list items */
+.light .hover\:bg-surface-700:hover { background-color: #e2e8f0 !important; }
+/* hover:bg-white/5 → nearly invisible on white — swap for a faint gray */
+.light .hover\:bg-white\/5:hover    { background-color: rgba(0, 0, 0, 0.05) !important; }
+
+/* ── H. Gradient via-surface-9xx: dark midpoint in light mode ─────── */
+/* Pro pricing card: from-brand-blue/10 via-surface-900 to-surface-950 */
+.light [class*="via-surface-9"] {
+  --tw-gradient-stops: var(--tw-gradient-from), transparent var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+
+/* ── I. to-surface without matching from-surface: needs explicit bg ── */
+/* e.g. blog cover: from-teal-950 to-surface-900 — bg-image is cleared  */
+/* by rule 16 above but bg-color is only set for from-surface-9 elements */
+.light [class*="to-surface-9"]:not([class*="from-surface-9"]) {
+  background-color: #ffffff !important;
+}
+
+/* ── J. Focus ring offset: ring-offset-surface-950 = near-black ────── */
+.light .focus-visible\:ring-offset-surface-950:focus-visible {
+  --tw-ring-offset-color: #ffffff;
+}
+
+/* ── K. Hero / section glow blobs: intense on white, reduce opacity ──
+   These are absolute positioned divs with bg-brand-* + blur-*         */
+.light .absolute[class*="bg-brand-blue"][class*="blur-"],
+.light .absolute[class*="bg-brand-cyan"][class*="blur-"] {
+  opacity: 0.04 !important;
+}
+
+/* ── L. Arbitrary inline glow box-shadows on links/buttons ───────────
+   shadow-[0_0_28px_rgba(59,130,246,0.40)] looks intense on white.
+   Replace with a tight, Stripe-style elevation shadow.                */
+.light a[class*="shadow-[0_0_"],
+.light button[class*="shadow-[0_0_"] {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10), 0 0 10px rgba(59, 130, 246, 0.12) !important;
+}
+
+/* ── M. .btn-primary shadow — calibrate for white backgrounds ────────
+   The dark mode glow (0_4px_16px at 35%) is too saturated on white   */
+.light .btn-primary {
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.22), 0 2px 8px rgba(59, 130, 246, 0.12) !important;
+}
+.light .btn-primary:hover:not(:disabled) {
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.30), 0 0 18px rgba(59, 130, 246, 0.14) !important;
+  transform: scale(1.02);
+}
+
+/* ── N. Grid overlay lines (hero sections): white lines on white bg ──
+   Dark mode grid uses rgba(white, 0.03-0.04) — invisible on white bg.
+   These are set via inline style so we target the parent sections.    */
+/* No CSS override possible for inline-style elements — opacity set    */
+/* low enough (0.03) that on white the lines are just invisible, which */
+/* is acceptable — white grids never show on white backgrounds.        */
+
+/* ── O. Card inner glow (inset highlight) ────────────────────────────
+   inset 0 1px 0 rgba(255,255,255,0.06) — invisible on white cards    */
+.light .card {
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.07),
+    0 0 0 1px rgba(0, 0, 0, 0.09) !important;
+}
+.light .card:hover {
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.10),
+    0 0 0 1px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-2px);
+}
+
+/* ── P. hover-lift: dark rgba shadow → light shadow ─────────────────  */
+.light .hover-lift:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIGHT MODE — PASS 3: SEMANTIC COLORS, MISSING TEXT & HOVER FIXES
+   These address gaps left after Pass 1 (CSS vars) and Pass 2 (Tailwind
+   utility overrides). Zero impact on dark mode — all scoped to .light.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Q. Broad text-white: catches footer, dashboard, any container not
+        covered by the section/card rules in rule 10 above.
+        Existing rule-10 section/card rules are more specific and still win.
+        Gradient CTAs (from-brand-*) are re-allowed via exception below.   */
+.light .text-white {
+  color: var(--text-primary) !important;
+}
+/* Re-allow #fff on gradient buttons/badges that carry both classes at once */
+.light [class*="from-brand-blue"].text-white,
+.light [class*="from-brand-cyan"].text-white,
+.light [class*="bg-gradient-to"].text-white {
+  color: #ffffff !important;
+}
+
+/* ── R. hover:border-white → white border on white bg = invisible ─────── */
+.light .hover\:border-white:hover          { border-color: #cbd5e1 !important; } /* slate-300 */
+.light .hover\:border-white\/50:hover      { border-color: #e2e8f0 !important; } /* slate-200 */
+
+/* ── S. hover: brand colour variants — Tailwind hover class ≠ static class,
+        rule A only catches .text-brand-cyan/blue at rest, not on hover.  */
+.light .hover\:text-brand-cyan:hover  { color: #0891b2 !important; } /* cyan-600 — 4.5:1 */
+.light .hover\:text-brand-blue:hover  { color: #1d4ed8 !important; } /* blue-700 — 5.1:1 */
+
+/* ── T. Opacity-variant bg-surface hover states not caught by rule G ───── */
+.light .hover\:bg-surface-700\/80:hover  { background-color: rgba(0, 0, 0, 0.06) !important; }
+.light .hover\:bg-surface-900\/50:hover  { background-color: rgba(0, 0, 0, 0.02) !important; }
+
+/* ── U. bg-surface-9xx opacity variants (e.g. bg-surface-900/80, /50) ────
+        Rule C only exact-matches .bg-surface-950 / .bg-surface-900.
+        Opacity variants are separate Tailwind classes, not caught by C.
+        Scoped to div / li / tr to leave <section> to rule 9.             */
+.light div[class*="bg-surface-9"]:not([class*="from-surface-9"]):not(.pointer-events-none),
+.light li[class*="bg-surface-9"],
+.light tr[class*="bg-surface-9"] {
+  background-color: #ffffff !important;
+}
+
+/* ── V. Semantic status colors: all fail WCAG AA on white; boost to AA ───
+        emerald-400 #34d399 = 2.3:1 · amber-400 #fbbf24 = 1.3:1 · rose-400 #fb7185 = 2.7:1  */
+.light .text-emerald-400          { color: #059669 !important; } /* emerald-600 — 4.6:1 */
+.light .text-amber-400            { color: #b45309 !important; } /* amber-700   — 6.5:1 */
+.light .text-rose-400             { color: #e11d48 !important; } /* rose-700    — 5.2:1 */
+.light .text-rose-300             { color: #be123c !important; } /* rose-800    — 7.1:1 (alert text) */
+
+/* ── W. hover:text-rose-400: logout & danger hover on light sidebar ─────  */
+.light .hover\:text-rose-400:hover { color: #e11d48 !important; }
+
+/* ── X. text-gradient: hardcoded blue/cyan at 3:1/2.5:1 on white — boost  */
+.light .text-gradient {
+  background-image: linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%) !important;
+}
+
+/* ── Y. Pricing pro card glow: 60px/80px bloom is too saturated on white;
+        replace with tight elevation + thin ring (Stripe/Linear pattern)
+        Attribute selector values use literal chars — no backslash needed. */
+.light [class*="shadow-[0_0_60px"] {
+  box-shadow: 0 4px 24px rgba(59, 130, 246, 0.13), 0 0 0 1px rgba(59, 130, 246, 0.16) !important;
+}
+.light [class*="shadow-[0_0_80px"] {
+  box-shadow: 0 6px 28px rgba(59, 130, 246, 0.17), 0 0 0 1px rgba(59, 130, 246, 0.20) !important;
+}
+/* "Most popular" badge + CTA buttons with 20px blue glow — reduce on white */
+.light [class*="shadow-[0_0_20px_rgba(59,130,246"] {
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.22) !important;
+}
+
+/* ── Z. grid-bg: white lines on white bg are invisible; replace with dark  */
+.light .grid-bg {
+  background-image: var(--tw-gradient-to, transparent),
+    linear-gradient(rgba(0, 0, 0, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.045) 1px, transparent 1px);
+}
+
+/* ── AA. Scrollbar: dark thumb on light bg — update to slate tones ─────── */
+.light ::-webkit-scrollbar-thumb         { background: #cbd5e1; }
+.light ::-webkit-scrollbar-thumb:hover   { background: #94a3b8; }
+
+/* ── AB. Sidebar divider + section label dividers ──────────────────────── */
+/* bg-surface-800 dividers (h-px) currently render as #f1f5f9 via rule D —
+   barely visible at 1px. Boost to slate-200 for a crisp separator line.  */
+.light .h-px[class*="bg-surface-8"] { background-color: #e2e8f0 !important; }
+
+/* ── AB-ext. bg-surface-8xx inputs: rule 13 only handles bg-surface-9xx. */
+/* Blog newsletter + any other raw input using bg-surface-800 as base.   */
+.light input[class*="bg-surface-8"],
+.light textarea[class*="bg-surface-8"],
+.light select[class*="bg-surface-8"] {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-default) !important;
+}
+/* Also ensure any raw input/textarea whose own class carries text-white
+   gets readable text (e.g. AuthInput, BlogsClient newsletter input).   */
+.light input.text-white,
+.light textarea.text-white {
+  color: var(--text-primary) !important;
+}
+
+/* ── AB-ext2. Group-hover:text-white → stays dark in light mode ────────
+   Tailwind generates `.group:hover .group-hover\:text-white` — our broad
+   rule Q can't reach it, so we need this explicit override.             */
+.light .group:hover .group-hover\:text-white {
+  color: var(--text-primary) !important;
+}
+/* Group-hover glow overly on blog cards: reduce large hover shadows     */
+.light [class*="hover:shadow-[0_0_40"]:hover,
+.light [class*="hover:shadow-[0_20"]:hover,
+.light [class*="hover:shadow-[0_0_60"]:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(0, 0, 0, 0.07) !important;
+}
+
+/* ── AC-ext. Border opacity variants: rule B only catches exact Tailwind  */
+/* class names like .border-surface-800 but NOT .border-surface-800/60.   */
+/* Add attribute-contains rule to catch all surface-8xx border variants.  */
+.light [class*="border-surface-8"]:not(thead):not(tbody) {
+  border-color: #e2e8f0 !important; /* slate-200 */
+}
+.light [class*="border-surface-7"]:not(thead):not(tbody) {
+  border-color: #cbd5e1 !important; /* slate-300 */
+}
+/* divide- opacity variants (e.g. divide-surface-800/60) */
+.light [class*="divide-surface-8"] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}
+
+/* ── AC. Testimonial / feature cards: from-surface-9 gradient renders as
+        white via rule 16, but the hover glow shadows are near-invisible.
+        Add a subtle elevation shadow for these cards in light mode.       */
+.light [class*="from-surface-9"][class*="to-surface-9"] {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.light [class*="from-surface-9"][class*="to-surface-9"]:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(0, 0, 0, 0.11);
+}
+
+/* ── AD. Reduce large blur glow blobs beyond what rule K already handles.
+        Rule K covers blur-* on bg-brand-* elements; this catches the
+        extra-large blur-[120-160px] blobs used as ambient light sources. */
+.light .absolute[class*="blur-[140px]"],
+.light .absolute[class*="blur-[160px]"],
+.light .absolute[class*="blur-[120px]"] {
+  opacity: 0.03 !important;
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% }
+  100% { background-position: 200% }
+}
+
+.animate-gradient {
+  animation: gradientMove 6s linear infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   ANIMATION: Hero stagger — page-load entry, no IntersectionObserver needed.
+   `both` fill-mode: elements start invisible and stay visible after animation.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@keyframes heroEntry {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ANIMATION: hero-entry-N — staggered entrance for hero section children */
+.hero-entry-1 { animation: heroEntry 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0ms   both; }
+.hero-entry-2 { animation: heroEntry 0.75s cubic-bezier(0.16, 1, 0.3, 1) 120ms both; }
+.hero-entry-3 { animation: heroEntry 0.75s cubic-bezier(0.16, 1, 0.3, 1) 240ms both; }
+.hero-entry-4 { animation: heroEntry 0.75s cubic-bezier(0.16, 1, 0.3, 1) 360ms both; }
+.hero-entry-5 { animation: heroEntry 0.75s cubic-bezier(0.16, 1, 0.3, 1) 480ms both; }
+.hero-entry-6 { animation: heroEntry 0.75s cubic-bezier(0.16, 1, 0.3, 1) 600ms both; }
+/* ANIMATION: mockup enters slightly later with a softer curve */
+.hero-entry-mockup { animation: heroEntry 1.0s cubic-bezier(0.16, 1, 0.3, 1) 280ms both; }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   ANIMATION: Scroll-reveal system.
+   Base class: invisible + shifted down 24 px.
+   Trigger:    add `.in-view` via IntersectionObserver to transition in.
+   Stagger:    pair with Tailwind's built-in `delay-*` (75 / 150 / 200 / 300 ms).
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity  0.65s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform; /* ANIMATION: hint GPU compositor */
+}
+
+.scroll-reveal.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   ANIMATION: Float — continuous vertical oscillation for the hero mockup card.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0px);   }
+  50%       { transform: translateY(-12px); }
+}
+
+/* ANIMATION: animate-float — gentle infinite float for decorative card mockup */
+.animate-float {
+  animation: floatY 5s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   ANIMATION: Accessibility — disable all custom motion when user prefers it.
+   scroll-reveal elements become immediately visible; float/entry stop.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal,
+  .scroll-reveal.in-view {
+    opacity:    1         !important;
+    transform:  none      !important;
+    transition: none      !important;
+    will-change: auto;
+  }
+  .hero-entry-1,
+  .hero-entry-2,
+  .hero-entry-3,
+  .hero-entry-4,
+  .hero-entry-5,
+  .hero-entry-6,
+  .hero-entry-mockup {
+    animation: none    !important;
+    opacity:   1       !important;
+    transform: none    !important;
+  }
+  .animate-float {
+    animation: none  !important;
+    transform: none  !important;
+  }
+  .animate-pop-in,
+  .animate-shake,
+  .animate-slide-in-right {
+    animation: none  !important;
+    opacity:   1     !important;
+    transform: none  !important;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   3D: Utility classes for mouse-driven 3D effects (use3DTilt, useMagneticHover).
+   Hooks set inline `style` transforms; these classes add complementary layering.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* 3D-SHOWCASE: Perspective wrapper for CSS 3D carousels */
+.perspective-container {
+  perspective: 1100px;
+  perspective-origin: 50% 40%;
+}
+
+/* 3D-SHOWCASE: Enables 3D space for children using rotateY / translateZ */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* 3D: GPU-accelerate elements that will receive JS-driven transforms */
+.card-3d {
+  will-change: transform;
+}
+
+/* 3D: Layered box-shadow that reads as physical elevation */
+.shadow-3d {
+  box-shadow:
+    0 1px 1px rgba(0,0,0,0.14),
+    0 2px 4px rgba(0,0,0,0.12),
+    0 4px 8px rgba(0,0,0,0.10),
+    0 8px 16px rgba(0,0,0,0.08),
+    0 16px 24px rgba(0,0,0,0.06);
+}
+
+/* 3D: Shadow deepens as element appears to lift */
+.shadow-3d-hover {
+  transition: box-shadow 0.35s ease;
+}
+.shadow-3d-hover:hover {
+  box-shadow:
+    0 2px 2px rgba(0,0,0,0.14),
+    0 4px 8px rgba(0,0,0,0.12),
+    0 8px 16px rgba(0,0,0,0.10),
+    0 20px 32px rgba(0,0,0,0.10),
+    0 40px 56px rgba(0,0,0,0.08);
+}
+
+/* 3D: Ambient brand glow surfaces on hover */
+.glow-3d {
+  transition: box-shadow 0.35s ease;
+}
+.glow-3d:hover {
+  box-shadow:
+    0 0 32px rgba(6, 182, 212, 0.10),
+    0 0 64px rgba(59, 130, 246, 0.07);
+}
+
+/* 3D: Disable shadow transitions under reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .card-3d              { will-change: auto; }
+  .shadow-3d-hover,
+  .shadow-3d-hover:hover,
+  .glow-3d,
+  .glow-3d:hover        { transition: none !important; box-shadow: none; }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   ANIMATION: Supplementary keyframes used across content pages.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* ANIMATION: popIn — badge / pill entrance with spring overshoot */
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.75); }
+  60%  {             transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1);    }
+}
+.animate-pop-in {
+  animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ANIMATION: shake — error state feedback on form submit */
+@keyframes shake {
+  0%, 100%                       { transform: translateX(0);  }
+  15%, 45%, 75%                  { transform: translateX(-5px); }
+  30%, 60%, 90%                  { transform: translateX(5px);  }
+}
+.animate-shake {
+  animation: shake 0.45s ease-in-out;
+}
+
+/* ANIMATION: slideInRight — tab panel / drawer entrance */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   POLISH: Shimmer sweep — fixes skeleton loader background-position animation.
+   The .skeleton class references `shimmer` but the keyframe was missing.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  600px 0; }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   POLISH: Ripple — click feedback on buttons.
+   Spans are injected/removed by Button.tsx via DOM; this class drives the expand.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@keyframes rippleExpand {
+  from { width: 0;     height: 0;     opacity: 0.45; transform: translate(-50%, -50%); }
+  to   { width: 220px; height: 220px; opacity: 0;    transform: translate(-50%, -50%); }
+}
+/* POLISH: .animate-ripple — positioned absolutely inside the button */
+.animate-ripple {
+  animation: rippleExpand 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  border-radius: 9999px;
+  pointer-events: none;
+  position: absolute;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   POLISH: Disable new polish animations for reduced-motion users.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  /* POLISH: ripple never expands — instantly transparent */
+  .animate-ripple {
+    animation: none   !important;
+    opacity:   0      !important;
+  }
+  /* POLISH: shimmer becomes static (skeleton still visible, just no sweep) */
+  .skeleton {
+    animation: none   !important;
+    background: var(--bg-overlay) !important;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LAYOUT: Dashboard container utilities
+   Center content in the main panel at 3 width presets.
+   Applied directly on the page's root div — the layout's p-4/6/8 padding
+   stays on the <main> wrapper, these classes add max-width + centering only.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@layer utilities {
+  .dashboard-container {
+    max-width: 64rem;   /* 1024px — matches max-w-5xl */
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .dashboard-container-narrow {
+    max-width: 48rem;   /* 768px — matches max-w-3xl */
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .dashboard-container-wide {
+    max-width: 80rem;   /* 1280px — matches max-w-7xl */
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   PREMIUM CSS UTILITIES
+   Higher-fidelity card, glass, text-gradient, and border-glow classes.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@layer components {
+
+  /* premium-card — elevated .card variant with subtle brand gradient tint */
+  .premium-card {
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59,130,246,0.03) 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    box-shadow:
+      0 1px 3px rgba(0,0,0,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.04),
+      0 0 0 1px rgba(59,130,246,0.06);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .premium-card:hover {
+    border-color: rgba(59,130,246,0.18);
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.5),
+      0 0 0 1px rgba(59,130,246,0.12),
+      inset 0 1px 0 rgba(255,255,255,0.07);
+    transform: translateY(-2px);
+  }
+
+  /* glass-card — frosted dark panel, lighter than .glass */
+  .glass-card {
+    background: rgba(24, 24, 27, 0.60);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+  }
+
+  /* border-glow — cyan glow ring, for highlight/active states */
+  .border-glow {
+    border: 1px solid rgba(6, 182, 212, 0.25);
+    box-shadow:
+      0 0 20px rgba(6, 182, 212, 0.08),
+      inset 0 0 20px rgba(6, 182, 212, 0.03);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .border-glow:hover {
+    border-color: rgba(6, 182, 212, 0.40);
+    box-shadow:
+      0 0 30px rgba(6, 182, 212, 0.15),
+      inset 0 0 20px rgba(6, 182, 212, 0.05);
+  }
+}
+
+@layer utilities {
+  /* gradient-text-primary — animated brand gradient text */
+  .gradient-text-primary {
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    background-image: linear-gradient(135deg, #06B6D4 0%, #3B82F6 50%, #06B6D4 100%);
+    background-size: 200% auto;
+    animation: gradientMove 5s linear infinite;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   ANIMATION: Wizard step transition — slides in from right on step advance.
+   Keyed on the step number so React re-mounts the div triggering the animation.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.animate-step-in {
+  animation: slideInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.animate-step-back {
+  animation: slideInLeft 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-step-in,
+  .animate-step-back,
+  .gradient-text-primary {
+    animation: none !important;
+    opacity: 1      !important;
+    transform: none !important;
+  }
+}
+
+/* Light mode overrides for new premium utilities */
+.light .premium-card {
+  background: linear-gradient(135deg, #ffffff 0%, rgba(59,130,246,0.02) 100%) !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.08) !important;
+}
+.light .premium-card:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.10), 0 0 0 1px rgba(59,130,246,0.15) !important;
+}
+.light .glass-card {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+.light .gradient-text-primary {
+  background-image: linear-gradient(135deg, #0891b2 0%, #1d4ed8 50%, #0891b2 100%) !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   ENHANCEMENT: Confetti fall animation — pieces spawn at top, rotate as they fall.
+   Used by components/ui/Confetti.tsx on portfolio generation success.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@keyframes confettiFall {
+  0%   { transform: translateY(0)      rotate(0deg);   opacity: 1; }
+  80%  { opacity: 0.8; }
+  100% { transform: translateY(100vh)  rotate(720deg); opacity: 0; }
+}
+
+.animate-confetti-fall {
+  animation: confettiFall 2.5s ease-in forwards;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-confetti-fall { animation: none !important; opacity: 0 !important; }
+}
+/* ────────────────────────────────────────────────────────────────────────────
+   MOBILE  —  Prevent iOS Safari from zooming on input focus (requires 16px)
+              and ensure touch targets meet the 44px minimum.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@media screen and (max-width: 767px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
