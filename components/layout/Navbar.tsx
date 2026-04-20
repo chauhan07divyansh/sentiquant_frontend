@@ -97,7 +97,7 @@ function ThemeToggle() {
 // ─────────────────────────────────────────────
 export function Navbar({ isDashboard = false }: { isDashboard?: boolean }) {
   const pathname = usePathname()
-  const { data: session, status } = useSession()
+  const { data: session, status } = useSession() ?? {}
   const isAuthenticated = status === 'authenticated'
   const isLoading       = status === 'loading'
   const user            = session?.user ?? null
