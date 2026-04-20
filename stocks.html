@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse Stocks — Sentiquant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Variables ───────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #090c10;
+      --surface:    #0f1318;
+      --surface-2:  #141920;
+      --border:     rgba(255, 255, 255, 0.07);
+      --border-h:   rgba(255, 255, 255, 0.14);
+      --accent:     #00d4aa;
+      --accent-dim: rgba(0, 212, 170, 0.12);
+      --blue:       #3b82f6;
+      --text:       #e8eaf0;
+      --muted:      #6b7280;
+      --muted-2:    #4b5563;
+      --radius:     12px;
+      --radius-sm:  8px;
+      --header-h:   64px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ─────────────────────────────── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      height: var(--header-h);
+      background: rgba(9, 12, 16, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+    }
+
+    .header-inner {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 20px;
+      background: linear-gradient(90deg, #3b82f6, #00d4aa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.18s ease;
+    }
+
+    .btn-back:hover {
+      color: var(--text);
+      border-color: var(--border-h);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .btn-logout {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      background: transparent;
+      color: #f87171;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .btn-logout:hover {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    /* ── Main Container ──────────────────────── */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── Page Title ──────────────────────────── */
+    .page-header {
+      margin-bottom: 32px;
+    }
+
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    .page-sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* ── Search ──────────────────────────────── */
+    .search-wrapper {
+      position: relative;
+      margin-bottom: 32px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted-2);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      max-width: 440px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px 12px 42px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .search-input::placeholder { color: var(--muted-2); }
+
+    .search-input:focus {
+      border-color: rgba(0, 212, 170, 0.35);
+      box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.08);
+    }
+
+    /* ── Results count ───────────────────────── */
+    .results-count {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── Stocks Grid ─────────────────────────── */
+    .stocks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    /* ── Stock Card ──────────────────────────── */
+    .stock-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stock-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0, 212, 170, 0.04) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .stock-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(0, 212, 170, 0.28);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 212, 170, 0.08);
+      background: var(--surface-2);
+    }
+
+    .stock-card:hover::before { opacity: 1; }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card-symbol {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .card-arrow {
+      color: var(--muted-2);
+      transition: color 0.18s ease, transform 0.18s ease;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    .stock-card:hover .card-arrow {
+      color: var(--accent);
+      transform: translate(2px, -2px);
+    }
+
+    .card-name {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+      font-weight: 400;
+    }
+
+    .sector-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 500;
+      background: rgba(0, 212, 170, 0.08);
+      color: var(--accent);
+      border: 1px solid rgba(0, 212, 170, 0.18);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    /* ── States ──────────────────────────────── */
+    .state-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 80px 24px;
+      text-align: center;
+    }
+
+    .state-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .state-icon.loading { background: rgba(0, 212, 170, 0.08); }
+    .state-icon.error   { background: rgba(239, 68, 68, 0.08); }
+    .state-icon.empty   { background: rgba(107, 114, 128, 0.08); }
+
+    .state-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .state-msg {
+      font-size: 14px;
+      color: var(--muted);
+      max-width: 320px;
+      line-height: 1.6;
+    }
+
+    /* ── Skeleton ────────────────────────────── */
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .sk {
+      background: linear-gradient(
+        90deg,
+        rgba(255,255,255,0.04) 25%,
+        rgba(255,255,255,0.09) 50%,
+        rgba(255,255,255,0.04) 75%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.8s ease-in-out infinite;
+      border-radius: 6px;
+    }
+
+    /* Ghost card — same dimensions as a real card */
+    .sk-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .sk-symbol  { height: 22px; width: 72px; }
+    .sk-name    { height: 13px; width: 85%;  }
+    .sk-badge   { height: 22px; width: 90px; border-radius: 100px; }
+
+    /* ── Retry button ────────────────────────── */
+    .btn-retry {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 20px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(0, 212, 170, 0.3);
+      background: rgba(0, 212, 170, 0.08);
+      color: var(--accent);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .btn-retry:hover {
+      background: rgba(0, 212, 170, 0.14);
+      border-color: rgba(0, 212, 170, 0.5);
+    }
+
+    /* ── Responsive ──────────────────────────── */
+    @media (max-width: 600px) {
+      .container { padding: 24px 16px 60px; }
+      .page-title { font-size: 24px; }
+      .stocks-grid { grid-template-columns: 1fr; }
+      .search-input { max-width: 100%; }
+      .btn-back span { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ─────────────────────────────── -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="dashboard.html" class="logo">Sentiquant</a>
+      <div class="header-right">
+        <a href="dashboard.html" class="btn-back">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 3L5 7l4 4"/>
+          </svg>
+          <span>Dashboard</span>
+        </a>
+        <button class="btn-logout" onclick="logout()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 7h7M9.5 4.5L12 7l-2.5 2.5"/>
+            <path d="M9 2H3a1 1 0 00-1 1v8a1 1 0 001 1h6"/>
+          </svg>
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── MAIN ───────────────────────────────── -->
+  <main class="container">
+
+    <div class="page-header">
+      <h1 class="page-title">Browse Stocks</h1>
+      <p class="page-sub">Select a stock to view its AI-generated analysis</p>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrapper">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <circle cx="7" cy="7" r="5"/><path d="m12 12-2.5-2.5"/>
+      </svg>
+      <input
+        id="searchInput"
+        class="search-input"
+        type="text"
+        placeholder="Search symbol or company name…"
+        oninput="filterStocks()"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </div>
+
+    <!-- Results count -->
+    <p class="results-count" id="resultsCount" style="display:none"></p>
+
+    <!-- Dynamic content -->
+    <div id="stocksContainer"></div>
+
+  </main>
+
+  <script>
+    const API_BASE = 'http://localhost:5000/api';
+    let allStocks = [];
+
+    // ── Auth guard ────────────────────────────
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      window.location.href = 'index.html';
+    }
+
+    // ── Logout ────────────────────────────────
+    async function logout() {
+      const rt = localStorage.getItem('refreshToken');
+      try {
+        await fetch(`${API_BASE}/auth/logout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ refreshToken: rt }),
+        });
+      } catch { /* always clear local data even if network fails */ }
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      window.location.href = 'index.html';
+    }
+
+    // ── Render helpers ────────────────────────
+
+    function showSkeletonCards() {
+      document.getElementById('resultsCount').style.display = 'none';
+      const ghost = () => `
+        <div class="sk-card">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+            <div class="sk sk-symbol"></div>
+            <div class="sk" style="width:16px;height:16px;margin-top:3px;border-radius:4px;flex-shrink:0"></div>
+          </div>
+          <div class="sk sk-name"></div>
+          <div class="sk sk-badge"></div>
+        </div>`;
+      document.getElementById('stocksContainer').innerHTML =
+        `<div class="stocks-grid">${Array(12).fill(0).map(ghost).join('')}</div>`;
+    }
+
+    function showError(msg) {
+      document.getElementById('resultsCount').style.display = 'none';
+      document.getElementById('stocksContainer').innerHTML = `
+        <div class="state-box">
+          <div class="state-icon error">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4M12 16h.01"/>
+            </svg>
+          </div>
+          <p class="state-title">Failed to load stocks</p>
+          <p class="state-msg">${msg}</p>
+          <button class="btn-retry" onclick="fetchStocks()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+              <path d="M12 2a5.5 5.5 0 10.9 4M12 2v4h-4"/>
+            </svg>
+            Retry
+          </button>
+        </div>`;
+    }
+
+    function showEmpty(query) {
+      document.getElementById('resultsCount').style.display = 'none';
+      document.getElementById('stocksContainer').innerHTML = `
+        <div class="state-box">
+          <div class="state-icon empty">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              <path d="M8 11h6M11 8v6"/>
+            </svg>
+          </div>
+          <p class="state-title">No results</p>
+          <p class="state-msg">No stocks match "${escapeHtml(query)}"</p>
+        </div>`;
+    }
+
+    function renderGrid(stocks) {
+      if (!stocks.length) return;
+      const count = document.getElementById('resultsCount');
+      count.textContent = `${stocks.length} stock${stocks.length !== 1 ? 's' : ''}`;
+      count.style.display = 'block';
+
+      document.getElementById('stocksContainer').innerHTML = stocks.map(s => `
+        <a class="stock-card" href="stock-analysis.html?symbol=${encodeURIComponent(s.symbol)}" tabindex="0">
+          <div class="card-top">
+            <span class="card-symbol">${escapeHtml(s.symbol)}</span>
+            <svg class="card-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+              <path d="M3 13L13 3M8 3h5v5"/>
+            </svg>
+          </div>
+          <p class="card-name">${escapeHtml(s.name || '')}</p>
+          ${s.sector ? `<span class="sector-badge">${escapeHtml(s.sector)}</span>` : ''}
+        </a>`
+      ).join('');
+
+      // Wrap grid
+      const container = document.getElementById('stocksContainer');
+      const grid = document.createElement('div');
+      grid.className = 'stocks-grid';
+      grid.innerHTML = container.innerHTML;
+      container.innerHTML = '';
+      container.appendChild(grid);
+    }
+
+    // ── Filter ────────────────────────────────
+    function filterStocks() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      if (!q) {
+        renderGrid(allStocks);
+        return;
+      }
+      const filtered = allStocks.filter(s =>
+        s.symbol.toLowerCase().includes(q) ||
+        (s.name || '').toLowerCase().includes(q)
+      );
+      if (!filtered.length) {
+        showEmpty(document.getElementById('searchInput').value.trim());
+      } else {
+        renderGrid(filtered);
+      }
+    }
+
+    // ── Fetch stocks ──────────────────────────
+    async function fetchStocks() {
+      showSkeletonCards();
+      try {
+        const res = await fetch(`${API_BASE}/stocks`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) {
+          logout();
+          return;
+        }
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+        const data = await res.json();
+        allStocks = data.stocks || [];
+        if (!allStocks.length) {
+          showEmpty('');
+          document.querySelector('.state-title').textContent = 'No stocks available';
+          document.querySelector('.state-msg').textContent = 'The stocks list is currently empty. Check back later.';
+          return;
+        }
+        renderGrid(allStocks);
+      } catch (err) {
+        showError(err.message || 'Unable to reach the server. Please try again.');
+      }
+    }
+
+    // ── Util ──────────────────────────────────
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ── Init ──────────────────────────────────
+    fetchStocks();
+  </script>
+</body>
+</html>
