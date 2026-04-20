@@ -14,7 +14,7 @@ import loggingService                  from '@/lib/services/loggingService'
 //  without importing next-auth everywhere.
 // ─────────────────────────────────────────────
 export function useAuth() {
-  const { data: session, status } = useSession()
+  const { data: session, status } = useSession() ?? {}
   const { setUser, logout: zustandLogout } = useAuthStore()
   const router = useRouter()
 
