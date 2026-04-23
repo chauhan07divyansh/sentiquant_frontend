@@ -40,10 +40,10 @@ export const authOptions: AuthOptions = {
             const data = await res.json()
             // AUTH: Pass tokens through so jwt() callback can store them in the JWT
             return {
-              id:           String(data.user?.id ?? data.id ?? '1'),
-              name:         data.user?.name ?? credentials.email.split('@')[0],
+              id:           String(data.user_id ?? data.user?.id ?? data.id ?? '1'),
+              name:         data.name ?? data.user?.name ?? credentials.email.split('@')[0],
               email:        credentials.email,
-              plan:         data.user?.plan ?? 'FREE',
+              plan:         data.plan ?? data.user?.plan ?? 'FREE',
               accessToken:  data.access_token,
               refreshToken: data.refresh_token,
             }
