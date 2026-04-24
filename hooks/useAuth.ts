@@ -57,26 +57,10 @@ export function useAuth() {
   }, [status, session?.accessToken, session?.refreshToken])
 
   // ── Login ────────────────────────────────
-  // AUTH: Pre-flight call surfaces Flask 403 (email not verified) before
-  // NextAuth's authorize() swallows it into a generic CredentialsSignin.
+  // AUTH: No preflight needed — authorize() in lib/auth.ts throws 'VERIFY_EMAIL_REQUIRED'
+  // for Flask 403 responses, which NextAuth surfaces as result.error here.
+  // This halves the number of requests to Flask and avoids shared-IP rate limit exhaustion.
   async function login(email: string, password: string): Promise<string | null> {
-    if (typeof window !== 'undefined') {
-      const flaskUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000'
-      try {
-        const preRes = await fetch(`${flaskUrl}/api/v1/auth/login`, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ email, password }),
-        })
-        if (preRes.status === 403) {
-          loggingService.warn('Login blocked — email not verified', { action: 'login_blocked', email })
-          return 'VERIFY_EMAIL_REQUIRED'
-        }
-      } catch {
-        // Flask unreachable — skip preflight, let NextAuth handle with demo fallback
-      }
-    }
-
     const result = await signIn('credentials', {
       email,
       password,
@@ -86,6 +70,10 @@ export function useAuth() {
     if (result?.error) {
       loggingService.logLoginFailed(email, result.error)
       console.log(`[useAuth] login failed: ${result.error}`)
+      if (result.error === 'VERIFY_EMAIL_REQUIRED') {
+        loggingService.warn('Login blocked — email not verified', { action: 'login_blocked', email })
+        return 'VERIFY_EMAIL_REQUIRED'
+      }
       if (result.error === 'CredentialsSignin') {
         return 'Invalid email or password. Please check your credentials.'
       }
