@@ -54,12 +54,20 @@ export const authOptions: AuthOptions = {
             }
           }
 
-          // AUTH: Flask returned explicit 400/401/403 — wrong credentials / unverified email
           console.log('[authorize] res.ok=false, status:', res.status)
-          if (res.status === 400 || res.status === 401 || res.status === 403 || res.status === 422) return null
+
+          // AUTH: 403 = email not verified — throw so NextAuth surfaces the reason
+          // in result.error instead of swallowing it as a generic CredentialsSignin.
+          // useAuth.ts login() catches this and returns 'VERIFY_EMAIL_REQUIRED'.
+          if (res.status === 403) throw new Error('VERIFY_EMAIL_REQUIRED')
+
+          // AUTH: Flask returned explicit 400/401/422 — wrong credentials
+          if (res.status === 400 || res.status === 401 || res.status === 422) return null
 
           // AUTH: Unexpected 5xx — fall through to demo fallback below
         } catch (e) {
+          // AUTH: Re-throw VERIFY_EMAIL_REQUIRED so NextAuth propagates it
+          if (e instanceof Error && e.message === 'VERIFY_EMAIL_REQUIRED') throw e
           // AUTH: Flask unreachable (dev / cold start / timeout)
           console.log('[authorize] fetch error:', e instanceof Error ? e.message : String(e))
         }
