@@ -34,6 +34,7 @@ export const authOptions: AuthOptions = {
               email:    credentials.email,
               password: credentials.password,
             }),
+            signal: AbortSignal.timeout(15000),
           })
 
           if (res.ok) {
@@ -54,11 +55,13 @@ export const authOptions: AuthOptions = {
           }
 
           // AUTH: Flask returned explicit 400/401/403 — wrong credentials / unverified email
+          console.log('[authorize] res.ok=false, status:', res.status)
           if (res.status === 400 || res.status === 401 || res.status === 403 || res.status === 422) return null
 
           // AUTH: Unexpected 5xx — fall through to demo fallback below
-        } catch {
-          // AUTH: Flask unreachable (dev / cold start) — fall through to demo fallback
+        } catch (e) {
+          // AUTH: Flask unreachable (dev / cold start / timeout)
+          console.log('[authorize] fetch error:', e instanceof Error ? e.message : String(e))
         }
 
         // AUTH: Demo fallback — development only. Never active in production.
