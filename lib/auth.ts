@@ -38,7 +38,11 @@ export const authOptions: AuthOptions = {
 
           if (res.ok) {
             const data = await res.json()
-            // AUTH: Pass tokens through so jwt() callback can store them in the JWT
+            console.log('[authorize] Flask response:', JSON.stringify(data).slice(0, 200))
+            if (!data.success) {
+              console.log('[authorize] success=false, returning null')
+              return null
+            }
             return {
               id:           String(data.user_id ?? data.user?.id ?? data.id ?? '1'),
               name:         data.name ?? data.user?.name ?? credentials.email.split('@')[0],
