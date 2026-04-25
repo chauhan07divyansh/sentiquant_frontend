@@ -3,6 +3,11 @@
 //  Single Axios instance for all Flask calls.
 //  Handles: base URL, timeouts, error normalization,
 //  503 degraded mode, and response unwrapping.
+//
+//  ROUTING: Browser calls go through Next.js /flask/* proxy
+//  (next.config.ts rewrites) → Flask internal URL.
+//  This bypasses Cloudflare WAF which blocks server-to-server
+//  POST requests without browser fingerprints.
 // ─────────────────────────────────────────────
 
 import axios, {
@@ -13,7 +18,11 @@ import axios, {
 } from 'axios'
 import { BackendError, DegradedModeError } from '@/types/api.types'
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000'
+// Browser: use /flask proxy (relative URL, goes through Next.js → Flask internal)
+// Server:  use Flask internal URL directly (SSR / API routes)
+const BASE_URL = typeof window !== 'undefined'
+  ? '/flask'
+  : (process.env.FLASK_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000')
 
 // ── Create the instance ───────────────────────
 const apiClient: AxiosInstance = axios.create({
@@ -91,7 +100,8 @@ apiClient.interceptors.response.use(
 
           if (refreshToken) {
             try {
-              const res = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
+              // Use proxy for refresh too — avoids Cloudflare block
+              const res = await fetch(`/flask/api/v1/auth/refresh`, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body:    JSON.stringify({ refresh_token: refreshToken }),
