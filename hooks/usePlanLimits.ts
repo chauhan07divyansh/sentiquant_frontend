@@ -17,6 +17,26 @@ interface UsageState {
   portfolios_used_today: number
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.sentiquant.org'
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = localStorage.getItem('refresh_token')
+  if (!refreshToken) return null
+  try {
+    const res  = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ refresh_token: refreshToken }),
+    })
+    const json = await res.json()
+    if (json.success && json.access_token) {
+      sessionStorage.setItem('access_token', json.access_token)
+      return json.access_token
+    }
+  } catch { /* network error */ }
+  return null
+}
+
 export function usePlanLimits() {
   const { data: session, status } = useSession()
   const [usage, setUsage]         = useState<UsageState | null>(null)
@@ -26,19 +46,30 @@ export function usePlanLimits() {
   const plan   = ((session?.user?.plan ?? 'FREE') as Plan)
   const config = PLAN_CONFIG[plan] ?? PLAN_CONFIG.FREE
 
-  // Fetch real usage from Flask DB — source of truth, not localStorage
+  // Fetch real usage from Flask DB — source of truth
   const fetchUsage = useCallback(async () => {
-    const token = typeof window !== 'undefined'
-      ? sessionStorage.getItem('access_token')
-      : null
+    if (typeof window === 'undefined') return
+
+    let token = sessionStorage.getItem('access_token')
     if (!token) { setLoading(false); return }
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/usage`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      if (!res.ok) return
+      let res = await fetch(`${API_URL}/api/v1/auth/usage`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      // Token expired — try to refresh and retry once
+      if (res.status === 401) {
+        const newToken = await refreshAccessToken()
+        if (!newToken) { setLoading(false); return }
+        token = newToken
+        res = await fetch(`${API_URL}/api/v1/auth/usage`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      }
+
+      if (!res.ok) { setLoading(false); return }
+
       const json = await res.json()
       if (json.success) {
         const fresh: UsageState = {
@@ -55,10 +86,15 @@ export function usePlanLimits() {
     }
   }, [])
 
-  // Fetch on mount and whenever session becomes authenticated
+  // Wait 500ms after authentication so useAuth has time to sync
+  // the access token into sessionStorage before we try to read it
   useEffect(() => {
-    if (status === 'authenticated') fetchUsage()
-    else if (status === 'unauthenticated') setLoading(false)
+    if (status === 'authenticated') {
+      const timer = setTimeout(fetchUsage, 500)
+      return () => clearTimeout(timer)
+    } else if (status === 'unauthenticated') {
+      setLoading(false)
+    }
   }, [status, fetchUsage])
 
   // Keep ref in sync so trackApiCall always sees fresh state
