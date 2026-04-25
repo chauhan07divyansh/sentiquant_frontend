@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────
 //  STOCKS API SERVICE
-//  Wraps: GET /api/stocks           — symbol list + count
-//         GET /api/analyze/swing/:symbol
-//         GET /api/analyze/position/:symbol
-//         GET /api/compare/:symbol
+//  Wraps: GET /api/v1/stocks
+//         GET /api/v1/analyze/swing/:symbol
+//         GET /api/v1/analyze/position/:symbol
+//         GET /api/v1/compare/:symbol
 // ─────────────────────────────────────────────
 
 import apiClient, { get, dispatchApiUsage } from './client'
@@ -26,17 +26,17 @@ function sanitizeSymbol(symbol: string): string {
 }
 
 // ─────────────────────────────────────────────
-//  GET /api/stocks
+//  GET /api/v1/stocks
 //  Returns the full list of supported stock symbols.
 //  Backend caches this for 5 minutes — we match with
 //  TanStack Query staleTime of 5 * 60 * 1000.
 // ─────────────────────────────────────────────
 export async function getAllStocks(): Promise<StockListResponse> {
-  return get<StockListResponse>('/api/stocks')
+  return get<StockListResponse>('/api/v1/stocks')
 }
 
 // ─────────────────────────────────────────────
-//  GET /api/stocks  (rich wrapper for the stocks list page)
+//  GET /api/v1/stocks  (rich wrapper for the stocks list page)
 //  Calls the same backend endpoint as getAllStocks() but adapts the
 //  response to StocksListApiResponse so the list page gets typed objects.
 //
@@ -59,7 +59,7 @@ export async function getStocksList(filters?: StockListFilters): Promise<StocksL
   if (filters?.sector)     params.sector     = filters.sector
   if (filters?.search)     params.search     = filters.search
 
-  const raw = await get<StockListResponse>('/api/stocks', params)
+  const raw = await get<StockListResponse>('/api/v1/stocks', params)
 
   return {
     stocks: raw.stocks.map((symbol) => ({ symbol, name: symbol })),
@@ -68,42 +68,42 @@ export async function getStocksList(filters?: StockListFilters): Promise<StocksL
 }
 
 // ─────────────────────────────────────────────
-//  GET /api/analyze/swing/:symbol
+//  GET /api/v1/analyze/swing/:symbol
 //  Full swing trading analysis for one stock.
 //  Uses apiClient directly to capture top-level `source` field
 //  (precomputed | cache | live) that the get() helper strips.
 // ─────────────────────────────────────────────
 export async function analyzeSwing(symbol: string): Promise<StockAnalysis> {
   const clean = sanitizeSymbol(symbol)
-  const response = await apiClient.get(`/api/analyze/swing/${clean}`)
+  const response = await apiClient.get(`/api/v1/analyze/swing/${clean}`)
   const body = response.data as { success: true; data: StockAnalysis; source?: StockAnalysis['source'] }
   dispatchApiUsage('analysis')
   return { ...body.data, source: body.source }
 }
 
 // ─────────────────────────────────────────────
-//  GET /api/analyze/position/:symbol
+//  GET /api/v1/analyze/position/:symbol
 //  Full position trading analysis for one stock.
 //  time_horizon = "6-18 months"
 //  Includes mda_analysis fields in sentiment.
 // ─────────────────────────────────────────────
 export async function analyzePosition(symbol: string): Promise<StockAnalysis> {
   const clean = sanitizeSymbol(symbol)
-  const response = await apiClient.get(`/api/analyze/position/${clean}`)
+  const response = await apiClient.get(`/api/v1/analyze/position/${clean}`)
   const body = response.data as { success: true; data: StockAnalysis; source?: StockAnalysis['source'] }
   dispatchApiUsage('analysis')
   return { ...body.data, source: body.source }
 }
 
 // ─────────────────────────────────────────────
-//  GET /api/compare/:symbol
+//  GET /api/v1/compare/:symbol
 //  Returns both swing and position analysis
 //  side-by-side for a single stock.
 //  Backend runs both analyses — can be slow (~40s).
 // ─────────────────────────────────────────────
 export async function compareStrategies(symbol: string): Promise<CompareResponse> {
   const clean = sanitizeSymbol(symbol)
-  const result = await get<CompareResponse>(`/api/compare/${clean}`)
+  const result = await get<CompareResponse>(`/api/v1/compare/${clean}`)
   dispatchApiUsage('compare')
   return result
 }
