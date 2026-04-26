@@ -33,6 +33,14 @@ export async function DELETE(
   return proxyRequest(req, params.path, 'DELETE')
 }
 
+// Portfolio generation analyzes 240 stocks — can take 5-8 minutes.
+// Standard requests use 60s, portfolio requests get 10 minutes.
+function getTimeout(path: string[]): number {
+  const joined = path.join('/')
+  if (joined.includes('portfolio')) return 600_000
+  return 60_000
+}
+
 async function proxyRequest(
   req: NextRequest,
   pathSegments: string[],
@@ -41,6 +49,7 @@ async function proxyRequest(
   const path     = pathSegments.join('/')
   const search   = req.nextUrl.search
   const flaskUrl = `${FLASK_URL}/${path}${search}`
+  const timeout  = getTimeout(pathSegments)
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -50,7 +59,11 @@ async function proxyRequest(
   const auth = req.headers.get('Authorization')
   if (auth) headers['Authorization'] = auth
 
-  const init: RequestInit = { method, headers }
+  const init: RequestInit = {
+    method,
+    headers,
+    signal: AbortSignal.timeout(timeout),
+  }
 
   if (method === 'POST' || method === 'PUT') {
     init.body = await req.text()
