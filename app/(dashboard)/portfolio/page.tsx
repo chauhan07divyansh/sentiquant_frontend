@@ -434,10 +434,10 @@ export default function PortfolioPage() {
     try {
       let data: PortfolioResponse
       if (type === 'swing') {
-        data = await swingMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk! }, { onProgress: handleProgress } as any)
+        data = await swingMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk!, onProgress: handleProgress })
         saveSwingPortfolio({ type: 'swing', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk! }, result: data })
       } else {
-        data = await positionMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60 }, { onProgress: handleProgress } as any)
+        data = await positionMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60, onProgress: handleProgress })
         savePositionPortfolio({ type: 'position', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60 }, result: data })
       }
       setResult(data)
