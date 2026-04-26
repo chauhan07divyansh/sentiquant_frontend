@@ -8,7 +8,7 @@
 //    validate_risk_appetite() → LOW | MEDIUM | HIGH
 //    validate_time_period()  → 9 | 18 | 36 | 60
 // ─────────────────────────────────────────────
-import { post, dispatchApiUsage } from './client'
+import apiClient, { dispatchApiUsage } from './client'
 import { ValidationError } from '@/types/api.types'
 import type {
   PortfolioResponse,
@@ -42,6 +42,10 @@ function validateTimePeriod(period: unknown): TimePeriod {
   return val as TimePeriod
 }
 
+// Portfolio generation analyzes 240 stocks in parallel — can take 5-8 minutes.
+// Use a dedicated 10-minute timeout instead of the default 60s.
+const PORTFOLIO_TIMEOUT = 600_000
+
 // ─────────────────────────────────────────────
 //  POST /api/v1/portfolio/swing
 //  Generates a swing trading portfolio.
@@ -54,12 +58,15 @@ export async function createSwingPortfolio(
 ): Promise<PortfolioResponse> {
   const budget = validateBudget(req.budget)
   const risk   = validateRiskAppetite(req.riskAppetite)
-  const result = await post<PortfolioResponse>('/api/v1/portfolio/swing', {
-    budget,
-    risk_appetite: risk,
-  })
+
+  const response = await apiClient.post<{ success: true; data: PortfolioResponse }>(
+    '/api/v1/portfolio/swing',
+    { budget, risk_appetite: risk },
+    { timeout: PORTFOLIO_TIMEOUT }
+  )
+
   dispatchApiUsage('portfolio')
-  return result
+  return response.data.data
 }
 
 // ─────────────────────────────────────────────
@@ -76,11 +83,13 @@ export async function createPositionPortfolio(
   const budget     = validateBudget(req.budget)
   const risk       = validateRiskAppetite(req.riskAppetite)
   const timePeriod = validateTimePeriod(req.timePeriod)
-  const result = await post<PortfolioResponse>('/api/v1/portfolio/position', {
-    budget,
-    risk_appetite: risk,
-    time_period:  timePeriod,
-  })
+
+  const response = await apiClient.post<{ success: true; data: PortfolioResponse }>(
+    '/api/v1/portfolio/position',
+    { budget, risk_appetite: risk, time_period: timePeriod },
+    { timeout: PORTFOLIO_TIMEOUT }
+  )
+
   dispatchApiUsage('portfolio')
-  return result
+  return response.data.data
 }
