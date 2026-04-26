@@ -11,7 +11,7 @@ import {
   type UseMutationOptions,
 } from '@tanstack/react-query'
 import { getAllStocks, analyzeSwing, analyzePosition, compareStrategies } from '@/lib/api/stocks.api'
-import { createSwingPortfolio, createPositionPortfolio } from '@/lib/api/portfolio.api'
+import { createSwingPortfolio, createPositionPortfolio, type PortfolioJob } from '@/lib/api/portfolio.api'
 import type { StockListResponse, StockAnalysis, CompareResponse } from '@/types/stock.types'
 import type { PortfolioResponse, SwingPortfolioRequest, PositionPortfolioRequest } from '@/types/portfolio.types'
 import { DegradedModeError } from '@/types/api.types'
@@ -25,6 +25,14 @@ export const queryKeys = {
   swingAnalysis:   (symbol: string) => ['analysis', 'swing',    symbol.toUpperCase()] as const,
   positionAnalysis:(symbol: string) => ['analysis', 'position', symbol.toUpperCase()] as const,
   compare:         (symbol: string) => ['compare',              symbol.toUpperCase()] as const,
+}
+
+// ── Extended request types with optional progress callback ──
+export type SwingPortfolioRequestWithProgress = SwingPortfolioRequest & {
+  onProgress?: (job: PortfolioJob) => void
+}
+export type PositionPortfolioRequestWithProgress = PositionPortfolioRequest & {
+  onProgress?: (job: PortfolioJob) => void
 }
 
 // ─────────────────────────────────────────────
@@ -58,7 +66,6 @@ export function useSwingAnalysis(
     enabled:  Boolean(symbol?.trim()),
     staleTime: FIVE_MINUTES,
     retry: (failCount, error) => {
-      // Never retry degraded mode errors — they need backend fix
       if (error instanceof DegradedModeError) return false
       return failCount < 2
     },
@@ -90,7 +97,6 @@ export function usePositionAnalysis(
 // ─────────────────────────────────────────────
 //  useCompareStrategies
 //  Fetches swing + position side-by-side.
-//  Slow endpoint (~40s) — show progress indicator.
 // ─────────────────────────────────────────────
 export function useCompareStrategies(
   symbol: string,
@@ -103,7 +109,7 @@ export function useCompareStrategies(
     staleTime: FIVE_MINUTES,
     retry: (failCount, error) => {
       if (error instanceof DegradedModeError) return false
-      return failCount < 1      // Only 1 retry — compare is expensive
+      return failCount < 1
     },
     ...options,
   })
@@ -111,28 +117,26 @@ export function useCompareStrategies(
 
 // ─────────────────────────────────────────────
 //  useCreateSwingPortfolio (mutation)
-//  POST /api/portfolio/swing
-//  Validates before sending — errors thrown as
-//  ValidationError before request fires.
+//  Uses async job polling — onProgress in request
+//  object is called every 5s with job state.
 // ─────────────────────────────────────────────
 export function useCreateSwingPortfolio(
-  options?: UseMutationOptions<PortfolioResponse, Error, SwingPortfolioRequest>
+  options?: UseMutationOptions<PortfolioResponse, Error, SwingPortfolioRequestWithProgress>
 ) {
-  return useMutation<PortfolioResponse, Error, SwingPortfolioRequest>({
+  return useMutation<PortfolioResponse, Error, SwingPortfolioRequestWithProgress>({
     mutationFn: createSwingPortfolio,
-    retry: 0,   // Portfolio generation is expensive — never auto-retry
+    retry: 0,
     ...options,
   })
 }
 
 // ─────────────────────────────────────────────
 //  useCreatePositionPortfolio (mutation)
-//  POST /api/portfolio/position
 // ─────────────────────────────────────────────
 export function useCreatePositionPortfolio(
-  options?: UseMutationOptions<PortfolioResponse, Error, PositionPortfolioRequest>
+  options?: UseMutationOptions<PortfolioResponse, Error, PositionPortfolioRequestWithProgress>
 ) {
-  return useMutation<PortfolioResponse, Error, PositionPortfolioRequest>({
+  return useMutation<PortfolioResponse, Error, PositionPortfolioRequestWithProgress>({
     mutationFn: createPositionPortfolio,
     retry: 0,
     ...options,
