@@ -84,11 +84,11 @@ async function pollJob(
 //  onProgress: called every 5s with current job state (for progress UI).
 // ─────────────────────────────────────────────
 export async function createSwingPortfolio(
-  req: SwingPortfolioRequest,
-  onProgress?: (job: PortfolioJob) => void
+  req: SwingPortfolioRequest & { onProgress?: (job: PortfolioJob) => void }
 ): Promise<PortfolioResponse> {
-  const budget = validateBudget(req.budget)
-  const risk   = validateRiskAppetite(req.riskAppetite)
+  const { onProgress, ...rest } = req
+  const budget = validateBudget(rest.budget)
+  const risk   = validateRiskAppetite(rest.riskAppetite)
 
   const startRes = await apiClient.post<{ success: true; job_id: string }>(
     '/api/v1/portfolio/swing/start',
@@ -106,12 +106,12 @@ export async function createSwingPortfolio(
 //  Starts position portfolio job → polls → returns result.
 // ─────────────────────────────────────────────
 export async function createPositionPortfolio(
-  req: PositionPortfolioRequest,
-  onProgress?: (job: PortfolioJob) => void
+  req: PositionPortfolioRequest & { onProgress?: (job: PortfolioJob) => void }
 ): Promise<PortfolioResponse> {
-  const budget     = validateBudget(req.budget)
-  const risk       = validateRiskAppetite(req.riskAppetite)
-  const timePeriod = validateTimePeriod(req.timePeriod)
+  const { onProgress, ...rest } = req
+  const budget     = validateBudget(rest.budget)
+  const risk       = validateRiskAppetite(rest.riskAppetite)
+  const timePeriod = validateTimePeriod(rest.timePeriod)
 
   const startRes = await apiClient.post<{ success: true; job_id: string }>(
     '/api/v1/portfolio/position/start',
