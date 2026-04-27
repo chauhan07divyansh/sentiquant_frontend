@@ -4,20 +4,14 @@ import Link from 'next/link'
 import { useAuthStore, useWatchlistStore } from '@/store'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { cn } from '@/lib/utils/cn'
-// ENHANCEMENT: New dashboard content sections
 import { MarketOverview }   from '@/components/dashboard/MarketOverview'
 import { RecentSignals }    from '@/components/dashboard/RecentSignals'
 import { TopPerformers }    from '@/components/dashboard/TopPerformers'
 import UsageIndicator       from '@/components/dashboard/UsageIndicator'
 
-// ─────────────────────────────────────────────
-//  MOCK DATA
-// ─────────────────────────────────────────────
-
-// Quick stats — build trust and set expectations
 const QUICK_STATS = [
   {
-    label: 'Stocks tracked', value: '250+',
+    label: 'Stocks tracked', value: '240+',
     icon: (
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M1 10.5l3-3.5 2.5 2.5 3.5-5L13 8" /><path d="M1 13h12" />
@@ -51,14 +45,12 @@ const QUICK_STATS = [
   },
 ]
 
-// Curated quick-access symbols
 const TOP_PICKS = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'BAJFINANCE', 'WIPRO'] as const
 
-// Quick actions
 const QUICK_ACTIONS = [
   {
     label:       'Analyze stocks',
-    description: 'AI signals for 250+ NSE & BSE stocks',
+    description: 'AI signals for 240+ NSE & BSE stocks',
     href:        '/stocks',
     icon: (
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -82,9 +74,6 @@ const QUICK_ACTIONS = [
   },
 ] as const
 
-// ─────────────────────────────────────────────
-//  SYMBOL CHIP — used for recently viewed + watchlist
-// ─────────────────────────────────────────────
 function SymbolChip({ symbol }: { symbol: string }) {
   return (
     <Link
@@ -104,9 +93,6 @@ function SymbolChip({ symbol }: { symbol: string }) {
   )
 }
 
-// ─────────────────────────────────────────────
-//  SECTION HEADER
-// ─────────────────────────────────────────────
 function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 mb-4">
@@ -117,9 +103,6 @@ function SectionHeader({ title, action }: { title: string; action?: React.ReactN
   )
 }
 
-// ─────────────────────────────────────────────
-//  DASHBOARD HOME PAGE
-// ─────────────────────────────────────────────
 export default function DashboardPage() {
   const { user }                      = useAuthStore()
   const { watchlist, recentlyViewed } = useWatchlistStore()
@@ -145,7 +128,6 @@ export default function DashboardPage() {
             Here&apos;s your trading overview for today.
           </p>
         </div>
-
       </div>
 
       {/* ── Quick stats ── */}
@@ -169,7 +151,7 @@ export default function DashboardPage() {
       {/* ── Usage indicator — plan limits ── */}
       <UsageIndicator />
 
-      {/* ── ENHANCEMENT: Market overview — index cards with animated count-up ── */}
+      {/* ── Market overview ── */}
       <MarketOverview />
 
       {/* ── Quick actions ── */}
@@ -206,7 +188,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── ENHANCEMENT: Recent signals + Top performers — 2-col grid ── */}
+      {/* ── Recent signals + Top performers ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RecentSignals />
         <TopPerformers />
@@ -283,7 +265,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* ── Top picks (curated quick access) ── */}
+      {/* ── Top picks ── */}
       <div>
         <SectionHeader
           title="Top picks — quick access"
@@ -304,7 +286,7 @@ export default function DashboardPage() {
       {/* ── Bottom trust strip ── */}
       <div className="flex items-center gap-4 pt-4 border-t border-gray-100 dark:border-surface-800 flex-wrap">
         <span className="text-[10px] text-surface-600">
-          Sentiquant analyzes 250+ NSE & BSE stocks in real time using AI signals.
+          Sentiquant analyzes 240+ NSE &amp; BSE stocks in real time using AI signals.
         </span>
         <span className="text-[10px] text-rose-400/70 ml-auto">
           Not financial advice. Always consult a SEBI-registered advisor.
