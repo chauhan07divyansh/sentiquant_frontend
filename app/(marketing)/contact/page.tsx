@@ -82,7 +82,7 @@ export default function ContactPage() {
               </h3>
 
               {[
-                { label: 'Email', value: 'hello@sentiquant.com' },
+                { label: 'Email', value: 'founder@sentiquant.org' },
                 { label: 'Response time', value: 'Within 24 hours' },
               ].map((item) => (
                 <div
