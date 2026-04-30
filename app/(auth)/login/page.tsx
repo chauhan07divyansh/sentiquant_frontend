@@ -172,18 +172,6 @@ function LoginContent() {
         </p>
       </div>
 
-      {/* Demo credentials hint */}
-      <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-brand-blue/8 border border-brand-cyan/20 text-xs text-brand-blue dark:text-brand-cyan leading-relaxed">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="shrink-0 mt-0.5">
-          <circle cx="7" cy="7" r="5.5"/>
-          <path d="M7 6v4M7 4.5v.5"/>
-        </svg>
-        <span>
-          Demo: <span className="font-mono font-semibold">demo@sentiquant.com</span>
-          {' '}/<span className="font-mono font-semibold"> demo1234</span>
-        </span>
-      </div>
-
       {/* Form */}
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
 
