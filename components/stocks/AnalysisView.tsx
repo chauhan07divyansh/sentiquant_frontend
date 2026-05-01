@@ -7,7 +7,7 @@ import { ScoreBar, Change } from '@/components/ui/DataDisplay'
 import { SignalBadge, GradeBadge, SystemBadge } from '@/components/ui/Badge'
 import { classifySignal } from '@/types/stock.types'
 import {
-  formatINR, formatNumber, timeAgo,
+  formatNumber, timeAgo,
   signalLabel, signalBg, signalColor,
 } from '@/lib/utils/formatters'
 import { useWatchlistStore } from '@/store'
