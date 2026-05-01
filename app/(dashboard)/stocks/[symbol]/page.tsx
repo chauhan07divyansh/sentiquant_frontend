@@ -180,7 +180,7 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
           )}>
             {/* Score */}
             <div className="flex items-baseline gap-1">
-              <span className={cn('font-mono font-bold text-lg tabular-nums leading-none', scoreColor)}>{score}</span>
+              <span className={cn('font-mono font-bold text-lg tabular-nums leading-none', scoreColor)}>{typeof score === 'number' ? score.toFixed(2) : score}</span>
               <span className="text-[10px] text-surface-600 font-mono">/100</span>
             </div>
             <div className="h-4 w-px bg-gray-200 dark:bg-surface-800 shrink-0" />
