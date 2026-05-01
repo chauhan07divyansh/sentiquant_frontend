@@ -30,6 +30,18 @@ function scoreGradient(score: number): string {
   return 'from-rose-500 to-pink-400'
 }
 
+function scoreLabel(score: number): string {
+  if (score >= 80) return 'Strong'
+  if (score >= 65) return 'Good'
+  if (score >= 50) return 'Moderate'
+  return 'Weak'
+}
+
+// Format price with exactly 2 decimal places
+function fmtPrice(n: number): string {
+  return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 // ─────────────────────────────────────────────
 //  COLLAPSIBLE SECTION
 // ─────────────────────────────────────────────
@@ -40,10 +52,10 @@ function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900">
+    <div className="overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900">
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-surface-800/40 transition-colors duration-150 text-left"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-surface-800/40 transition-colors duration-150 text-left"
       >
         <div className="flex items-center gap-2.5">
           <span className="text-brand-cyan shrink-0">{icon}</span>
@@ -67,7 +79,7 @@ function Section({
 }
 
 // ─────────────────────────────────────────────
-//  KEY-VALUE TABLE  (technicals / fundamentals / sentiment)
+//  KEY-VALUE TABLE
 // ─────────────────────────────────────────────
 function KVTable({ rows }: { rows: Array<[string, string | number]> }) {
   if (rows.length === 0) return <p className="text-xs text-surface-500">No data available.</p>
@@ -87,115 +99,21 @@ function KVTable({ rows }: { rows: Array<[string, string | number]> }) {
 }
 
 // ─────────────────────────────────────────────
-//  LEVEL CARD  — Entry / Target / Stop Loss
-// ─────────────────────────────────────────────
-interface LevelCardProps {
-  type:     'entry' | 'target' | 'stop'
-  price:    number | null
-  rawLabel: string
-  badge:    { label: string; value: number | null } | null
-}
-
-const LEVEL_META = {
-  entry: {
-    border: 'border-gray-200 dark:border-surface-800',
-    glow:   'from-brand-blue/8 to-transparent',
-    icon:   (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-blue">
-        <path d="M2 10L5.5 6 8 8.5 12 4" /><path d="M9.5 4h2.5v2.5" />
-      </svg>
-    ),
-    iconBg:  'bg-brand-blue/10 border-brand-blue/20',
-    title:   'Entry Price',
-    sub:     'Buy at or below',
-    priceColor: 'text-surface-900 dark:text-white',
-  },
-  target: {
-    border: 'border-emerald-500/25',
-    glow:   'from-emerald-500/8 to-transparent',
-    icon:   (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-emerald-400">
-        <circle cx="7" cy="7" r="5.5" /><circle cx="7" cy="7" r="2.5" />
-        <path d="M7 1.5v2M7 10.5v2M1.5 7h2M10.5 7h2" />
-      </svg>
-    ),
-    iconBg:  'bg-emerald-500/10 border-emerald-500/20',
-    title:   'Target Price',
-    sub:     'Profit objective',
-    priceColor: 'text-emerald-400',
-  },
-  stop: {
-    border: 'border-rose-500/25',
-    glow:   'from-rose-500/8 to-transparent',
-    icon:   (
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-rose-400">
-        <path d="M7 2v5M7 9v.5" /><circle cx="7" cy="7" r="5.5" />
-      </svg>
-    ),
-    iconBg:  'bg-rose-500/10 border-rose-500/20',
-    title:   'Stop Loss',
-    sub:     'Exit if below',
-    priceColor: 'text-rose-400',
-  },
-} as const
-
-function LevelCard({ type, price, rawLabel, badge }: LevelCardProps) {
-  const m = LEVEL_META[type]
-  return (
-    <div className={cn('relative overflow-hidden rounded-xl border bg-white dark:bg-surface-900 p-4 sm:p-5', m.border)}>
-      <div className={cn('absolute inset-0 bg-gradient-to-br pointer-events-none', m.glow)} />
-      <div className="relative flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <div className={cn('w-8 h-8 rounded-lg border flex items-center justify-center shrink-0', m.iconBg)}>
-            {m.icon}
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest">{m.title}</p>
-            <p className="text-[11px] text-surface-600">{m.sub}</p>
-          </div>
-        </div>
-        <div>
-          {price != null ? (
-            <>
-              <p className={cn('font-mono text-2xl sm:text-3xl font-bold tabular-nums leading-none', m.priceColor)}>
-                {formatINR(price, 0)}
-              </p>
-              {badge && badge.value != null && (
-                <div className={cn(
-                  'inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-md text-xs font-medium',
-                  badge.value >= 0 ? 'bg-emerald-400/10 text-emerald-400' : 'bg-rose-400/10 text-rose-400'
-                )}>
-                  {badge.value >= 0 ? '+' : ''}{badge.value.toFixed(2)}% {badge.label}
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="text-sm text-surface-400 leading-snug">{rawLabel}</p>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────
 //  MAIN ANALYSIS VIEW
 // ─────────────────────────────────────────────
 export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
-  const signal   = classifySignal(analysis.trading_plan.signal)
+  const signal    = classifySignal(analysis.trading_plan.signal)
   const scoreGrad = scoreGradient(analysis.overall_score)
 
   const { addToWatchlist, removeFromWatchlist, isWatched } = useWatchlistStore()
   const watched = isWatched(analysis.symbol)
   const [shareToast, setShareToast] = useState(false)
 
-  // Parse prices from trading plan strings
-  const entryNum = parsePrice(analysis.trading_plan.entry_price)
-  const stopNum  = parsePrice(analysis.trading_plan.stop_loss)
+  const entryNum  = parsePrice(analysis.trading_plan.entry_price)
+  const stopNum   = parsePrice(analysis.trading_plan.stop_loss)
   const targetNum = analysis.target_price
+  const base      = entryNum ?? analysis.current_price
 
-  // Percentage calculations relative to entry (or current_price fallback)
-  const base          = entryNum ?? analysis.current_price
   const entryVsCurrent = entryNum != null
     ? ((entryNum - analysis.current_price) / analysis.current_price) * 100
     : null
@@ -206,7 +124,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
     : null
 
   const handleShare = async () => {
-    const text = `${analysis.symbol} — AI Score: ${analysis.overall_score}/100 | ${analysis.trading_plan.signal} | Target: ${formatINR(targetNum, 0)} | SentiQuant`
+    const text = `${analysis.symbol} — AI Score: ${analysis.overall_score}/100 | ${analysis.trading_plan.signal} | Target: ${fmtPrice(targetNum)} | SentiQuant`
     try {
       if (navigator.share) {
         await navigator.share({ title: `${analysis.symbol} Analysis`, text, url: window.location.href })
@@ -218,79 +136,99 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
     } catch { /* user cancelled */ }
   }
 
-  const techRows = Object.entries(analysis.technical_indicators)
-    .filter(([, v]) => v != null) as Array<[string, string | number]>
-  const fundRows = Object.entries(analysis.fundamentals)
-    .filter(([, v]) => v != null && v !== '') as Array<[string, string | number]>
-  const sentRows = Object.entries(analysis.sentiment)
-    .filter(([, v]) => v != null) as Array<[string, string | number]>
+  const techRows = Object.entries(analysis.technical_indicators).filter(([, v]) => v != null) as Array<[string, string | number]>
+  const fundRows = Object.entries(analysis.fundamentals).filter(([, v]) => v != null && v !== '') as Array<[string, string | number]>
+  const sentRows = Object.entries(analysis.sentiment).filter(([, v]) => v != null) as Array<[string, string | number]>
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
 
-      {/* ── 1. Current price hero ── */}
-      <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 sm:p-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/5 via-transparent to-brand-cyan/5 pointer-events-none" />
-        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest">Current Price</span>
-            <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="font-display text-4xl sm:text-5xl font-bold text-surface-900 dark:text-white tabular-nums leading-none">
-                {formatINR(analysis.current_price, 0)}
+      {/* ── 1. Hero — Price + Signal ── */}
+      <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900">
+        {/* Glow background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/6 via-transparent to-brand-cyan/6 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-cyan/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
+            {/* Price block */}
+            <div className="flex flex-col gap-2">
+              <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Current Price
               </span>
-              <Change value={analysis.potential_return} size="md" />
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <span className="font-display text-4xl sm:text-5xl font-bold text-surface-900 dark:text-white tabular-nums leading-none">
+                  {fmtPrice(analysis.current_price)}
+                </span>
+                <Change value={analysis.potential_return} size="md" />
+              </div>
+              <p className="text-xs text-surface-500 mt-1">
+                {analysis.time_horizon} · {analysis.system_type} system
+              </p>
             </div>
-            <p className="text-xs text-surface-500">
-              {analysis.time_horizon} · {analysis.system_type} system
-            </p>
-          </div>
-          <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 flex-wrap">
-            <GradeBadge grade={analysis.investment_grade} showFull />
-            <SignalBadge strength={signal} className="text-sm px-3 py-1.5" />
+
+            {/* Grade + Signal */}
+            <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 flex-wrap">
+              <GradeBadge grade={analysis.investment_grade} showFull />
+              <SignalBadge strength={signal} className="text-sm px-3 py-1.5" />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── 2. AI Score + Recommendation ── */}
+      {/* ── 2. Score + AI Signal ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-        {/* Score */}
+        {/* AI Score */}
         <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 sm:p-6">
-          <div className={cn('absolute inset-0 bg-gradient-to-br opacity-[0.04] pointer-events-none', scoreGrad)} />
+          <div className={cn('absolute inset-0 bg-gradient-to-br opacity-[0.05] pointer-events-none', scoreGrad)} />
           <div className="relative flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="text-brand-cyan shrink-0">
-                <path d="M7.5 1.5l1.6 3.3 3.6.52-2.6 2.54.61 3.54L7.5 9.6l-3.21 1.8.61-3.54L2.3 5.32l3.6-.52z" />
-              </svg>
-              <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest">AI Score</span>
-            </div>
-            <div className="flex items-baseline gap-2 leading-none">
-              <span className={cn('font-display text-6xl font-bold bg-gradient-to-r bg-clip-text text-transparent tabular-nums', scoreGrad)}>
-                {analysis.overall_score}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="text-brand-cyan">
+                  <path d="M7 1.5l1.5 3 3.3.5-2.4 2.3.57 3.3L7 9l-2.97 1.6.57-3.3L2.2 5l3.3-.5z" />
+                </svg>
+                <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest">AI Score</span>
+              </div>
+              <span className={cn(
+                'text-[10px] font-bold px-2 py-0.5 rounded-full',
+                analysis.overall_score >= 80 ? 'bg-emerald-400/10 text-emerald-400' :
+                analysis.overall_score >= 65 ? 'bg-brand-cyan/10 text-brand-cyan' :
+                analysis.overall_score >= 50 ? 'bg-amber-400/10 text-amber-400' :
+                'bg-rose-400/10 text-rose-400'
+              )}>
+                {scoreLabel(analysis.overall_score)}
               </span>
-              <span className="text-xl text-surface-500 font-normal">/100</span>
             </div>
+
+            <div className="flex items-baseline gap-1.5 leading-none">
+              <span className={cn('font-display text-6xl font-bold bg-gradient-to-r bg-clip-text text-transparent tabular-nums', scoreGrad)}>
+                {analysis.overall_score.toFixed(2)}
+              </span>
+              <span className="text-lg text-surface-500 font-normal">/100</span>
+            </div>
+
             <ScoreBar score={analysis.overall_score} showValue={false} />
             <GradeBadge grade={analysis.investment_grade} showFull className="self-start" />
           </div>
         </div>
 
-        {/* Recommendation */}
+        {/* AI Signal */}
         <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 sm:p-6">
           <div className="flex flex-col gap-4 h-full">
             <div className="flex items-center gap-2">
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="text-brand-cyan shrink-0">
-                <circle cx="7.5" cy="7.5" r="6" /><path d="M7.5 5v4.5M7.5 11v.5" />
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="text-brand-cyan">
+                <circle cx="7" cy="7" r="5.5" /><path d="M7 5v4M7 4v.5" />
               </svg>
-              <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest">Recommendation</span>
+              <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest">AI Signal</span>
             </div>
 
-            {/* Big signal pill */}
             <div className={cn(
-              'flex items-center justify-center px-6 py-4 rounded-xl border text-center',
+              'flex items-center justify-center px-6 py-5 rounded-xl border',
               signalBg(signal)
             )}>
-              <span className={cn('font-display text-2xl font-bold tracking-wide', signalColor(signal))}>
+              <span className={cn('font-display text-3xl font-bold tracking-wider', signalColor(signal))}>
                 {signalLabel(signal).toUpperCase()}
               </span>
             </div>
@@ -304,46 +242,121 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
         </div>
       </div>
 
-      {/* ── 3. Trading levels ── */}
+      {/* ── 3. Technical Reference Levels — redesigned ── */}
       <div className="flex flex-col gap-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900 dark:text-white">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-cyan">
             <path d="M2 10h10M2 7h7M2 4h4" />
           </svg>
-          Trading Levels
+          Technical Reference Levels
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <LevelCard
-            type="entry"
-            price={entryNum}
-            rawLabel={analysis.trading_plan.entry_price}
-            badge={entryVsCurrent != null ? { label: 'vs current', value: entryVsCurrent } : null}
-          />
-          <LevelCard
-            type="target"
-            price={targetNum}
-            rawLabel="—"
-            badge={{ label: 'potential gain', value: targetGainPct }}
-          />
-          <LevelCard
-            type="stop"
-            price={stopNum}
-            rawLabel={analysis.trading_plan.stop_loss === 'N/A' ? 'Use trailing stop' : analysis.trading_plan.stop_loss}
-            badge={stopLossPct != null ? { label: 'max loss', value: stopLossPct } : null}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+          {/* Entry */}
+          <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4 sm:p-5">
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/6 to-transparent pointer-events-none" />
+            <div className="relative flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-brand-blue/10 border border-brand-blue/20 flex items-center justify-center shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-blue">
+                    <path d="M1.5 8.5L4.5 5 6.5 7 10 3" /><path d="M8 3h2v2" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Watch Zone</p>
+                  <p className="text-[10px] text-surface-600">Reference watch zone</p>
+                </div>
+              </div>
+              {entryNum != null ? (
+                <>
+                  <p className="font-mono text-2xl sm:text-3xl font-bold text-surface-900 dark:text-white tabular-nums leading-none">
+                    {fmtPrice(entryNum)}
+                  </p>
+                  {entryVsCurrent != null && (
+                    <span className={cn(
+                      'inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md w-fit',
+                      entryVsCurrent >= 0 ? 'bg-emerald-400/10 text-emerald-400' : 'bg-rose-400/10 text-rose-400'
+                    )}>
+                      {entryVsCurrent >= 0 ? '+' : ''}{entryVsCurrent.toFixed(2)}% vs current
+                    </span>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-surface-400">{analysis.trading_plan.entry_price}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Target */}
+          <div className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-white dark:bg-surface-900 p-4 sm:p-5">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/6 to-transparent pointer-events-none" />
+            <div className="relative flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-emerald-400">
+                    <circle cx="6" cy="6" r="4.5" /><circle cx="6" cy="6" r="2" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Upper Reference</p>
+                  <p className="text-[10px] text-surface-600">Upper technical level</p>
+                </div>
+              </div>
+              <p className="font-mono text-2xl sm:text-3xl font-bold text-emerald-400 tabular-nums leading-none">
+                {fmtPrice(targetNum)}
+              </p>
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md w-fit bg-emerald-400/10 text-emerald-400">
+                +{targetGainPct.toFixed(2)}% potential gain
+              </span>
+            </div>
+          </div>
+
+          {/* Risk Reference */}
+          <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-white dark:bg-surface-900 p-4 sm:p-5">
+            <div className="absolute inset-0 bg-gradient-to-br from-rose-500/6 to-transparent pointer-events-none" />
+            <div className="relative flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-rose-400">
+                    <path d="M6 2v4M6 8v.5" /><circle cx="6" cy="6" r="4.5" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Risk Reference</p>
+                  <p className="text-[10px] text-surface-600">Lower risk reference</p>
+                </div>
+              </div>
+              {stopNum != null ? (
+                <>
+                  <p className="font-mono text-2xl sm:text-3xl font-bold text-rose-400 tabular-nums leading-none">
+                    {fmtPrice(stopNum)}
+                  </p>
+                  {stopLossPct != null && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md w-fit bg-rose-400/10 text-rose-400">
+                      {stopLossPct.toFixed(2)}% max loss
+                    </span>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-surface-400">
+                  {analysis.trading_plan.stop_loss === 'N/A' ? 'Use trailing stop' : analysis.trading_plan.stop_loss}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Extended targets row */}
-        {([analysis.trading_plan.target_2, analysis.trading_plan.target_3] as string[])
-          .some(t => t && t !== 'N/A') && (
+        {/* Extended targets */}
+        {([analysis.trading_plan.target_2, analysis.trading_plan.target_3] as string[]).some(t => t && t !== 'N/A') && (
           <div className="flex items-center gap-2 flex-wrap pt-1">
             <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest">Extended targets:</span>
             {(['target_2', 'target_3'] as const).map((k, i) => {
               const t = analysis.trading_plan[k]
-              return t && t !== 'N/A' ? (
+              const tNum = t && t !== 'N/A' ? parsePrice(t) : null
+              return tNum ? (
                 <span key={k} className="text-xs font-mono font-medium text-emerald-400 bg-emerald-400/8 border border-emerald-400/20 px-2 py-0.5 rounded">
-                  T{i + 2}: ₹{t}
+                  T{i + 2}: {fmtPrice(tNum)}
                 </span>
               ) : null
             })}
@@ -353,59 +366,71 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
 
       {/* ── 4. Risk-Reward ── */}
       {rrRatio != null && stopLossPct != null && (
-        <div className="rounded-xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 sm:p-6">
-          <h3 className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest mb-4">
+        <div className="rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 sm:p-6">
+          <h3 className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest mb-5 flex items-center gap-2">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-cyan">
+              <path d="M1 6h10M6 1v10" />
+            </svg>
             Risk-Reward Analysis
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-5">
-            <div className="flex flex-col gap-1">
-              <p className="text-xs text-surface-500">Potential Gain</p>
-              <p className="font-mono text-2xl font-bold text-emerald-400 tabular-nums">
+
+          <div className="grid grid-cols-3 gap-4 sm:gap-6 mb-6">
+            {/* Upside Reference */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Upside Reference</p>
+              <p className="font-mono text-xl sm:text-2xl font-bold text-emerald-400 tabular-nums leading-none">
                 +{targetGainPct.toFixed(2)}%
               </p>
               {entryNum != null && (
-                <p className="text-xs text-surface-500 mt-0.5">
-                  {formatINR(targetNum - entryNum, 0)} per share
+                <p className="text-[10px] text-surface-500">
+                  {fmtPrice(targetNum - entryNum)} per share
                 </p>
               )}
             </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-xs text-surface-500">Max Loss</p>
-              <p className="font-mono text-2xl font-bold text-rose-400 tabular-nums">
+
+            {/* Downside Reference */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Downside Reference</p>
+              <p className="font-mono text-xl sm:text-2xl font-bold text-rose-400 tabular-nums leading-none">
                 {stopLossPct.toFixed(2)}%
               </p>
               {entryNum != null && stopNum != null && (
-                <p className="text-xs text-surface-500 mt-0.5">
-                  {formatINR(Math.abs(stopNum - entryNum), 0)} per share
+                <p className="text-[10px] text-surface-500">
+                  {fmtPrice(Math.abs(stopNum - entryNum))} per share
                 </p>
               )}
             </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-xs text-surface-500">Risk:Reward Ratio</p>
-              <p className="font-mono text-2xl font-bold text-surface-900 dark:text-white tabular-nums">
+
+            {/* R:R Ratio */}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Risk:Reward</p>
+              <p className="font-mono text-xl sm:text-2xl font-bold text-surface-900 dark:text-white tabular-nums leading-none">
                 1:{rrRatio.toFixed(2)}
               </p>
-              <p className={cn('text-xs mt-0.5', rrRatio >= 3 ? 'text-emerald-400' : rrRatio >= 2 ? 'text-brand-cyan' : 'text-amber-400')}>
-                {rrRatio >= 3 ? 'Excellent ratio' : rrRatio >= 2 ? 'Favorable' : 'Consider carefully'}
+              <p className={cn(
+                'text-[10px] font-semibold',
+                rrRatio >= 3 ? 'text-emerald-400' : rrRatio >= 2 ? 'text-brand-cyan' : 'text-amber-400'
+              )}>
+                {rrRatio >= 3 ? '✦ Excellent' : rrRatio >= 2 ? '✓ Favorable' : '⚠ Consider carefully'}
               </p>
             </div>
           </div>
 
-          {/* Visual risk-reward bar */}
-          <div className="flex items-center gap-0 rounded-full overflow-hidden h-2">
+          {/* Visual bar */}
+          <div className="flex items-center gap-0 rounded-full overflow-hidden h-2.5">
             <div
-              className="h-full bg-rose-400/60 rounded-l-full"
+              className="h-full bg-gradient-to-r from-rose-500/80 to-rose-400/60 rounded-l-full"
               style={{ width: `${Math.abs(stopLossPct) / (targetGainPct + Math.abs(stopLossPct)) * 100}%` }}
             />
-            <div className="w-0.5 h-full bg-surface-950 dark:bg-surface-950 shrink-0" />
+            <div className="w-px h-full bg-surface-950 shrink-0" />
             <div
-              className="h-full bg-emerald-400/60 rounded-r-full"
+              className="h-full bg-gradient-to-r from-emerald-500/60 to-emerald-400/80 rounded-r-full"
               style={{ width: `${targetGainPct / (targetGainPct + Math.abs(stopLossPct)) * 100}%` }}
             />
           </div>
-          <div className="flex justify-between mt-1.5">
-            <span className="text-[10px] text-rose-400/70">Stop loss</span>
-            <span className="text-[10px] text-emerald-400/70">Target</span>
+          <div className="flex justify-between mt-2">
+            <span className="text-[10px] text-rose-400/70 font-medium">Stop loss</span>
+            <span className="text-[10px] text-emerald-400/70 font-medium">Target</span>
           </div>
         </div>
       )}
@@ -421,11 +446,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
               : 'border-gray-200 dark:border-surface-700 text-surface-700 dark:text-surface-300 hover:bg-brand-cyan/10 hover:border-brand-cyan/30 hover:text-brand-cyan'
           )}
         >
-          <svg
-            width="13" height="13" viewBox="0 0 13 13"
-            fill={watched ? 'currentColor' : 'none'}
-            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-          >
+          <svg width="13" height="13" viewBox="0 0 13 13" fill={watched ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <path d="M6.5 1.2l1.5 3.1 3.4.5-2.45 2.4.58 3.38L6.5 9.1 3.97 10.58l.58-3.38L2.1 4.8l3.4-.5z" />
           </svg>
           {watched ? 'In Watchlist' : 'Add to Watchlist'}
@@ -493,7 +514,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
       {/* ── 8. Disclaimer ── */}
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
         <p className="text-xs text-surface-400 leading-relaxed">
-          <span className="font-semibold text-amber-400">Disclaimer:</span> This analysis is AI-generated for informational purposes only and does not constitute financial advice. Conduct your own research and consult a qualified financial advisor before making investment decisions.
+          <span className="font-semibold text-amber-400">Disclaimer:</span> This tool provides AI-generated technical analysis for educational and informational purposes only. Sentiquant is <span className="font-semibold text-amber-300">NOT a SEBI-registered investment advisor</span>. Nothing on this platform constitutes investment advice, a recommendation to buy or sell securities, or a solicitation of any kind. All data shown are technical reference levels only. Please conduct your own research and consult a SEBI-registered financial advisor before making any investment decisions.
         </p>
       </div>
 
