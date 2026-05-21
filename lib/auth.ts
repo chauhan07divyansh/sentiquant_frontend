@@ -1,14 +1,17 @@
 import { type AuthOptions, type User } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-
-// Moved out of app/api/auth/[...nextauth]/route.ts so that route.ts only
-// exports HTTP handlers (GET, POST). Next.js App Router rejects any other
-// named export from a route file with a TS type error.
-// Import authOptions here wherever you need getServerSession(authOptions).
+import GoogleProvider from 'next-auth/providers/google'
 
 export const authOptions: AuthOptions = {
   // ── Providers ─────────────────────────────
   providers: [
+    // ── Google OAuth ──────────────────────────
+    GoogleProvider({
+      clientId:     process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+
+    // ── Credentials (email + password) ────────
     CredentialsProvider({
       name: 'credentials',
       credentials: {
@@ -19,8 +22,6 @@ export const authOptions: AuthOptions = {
       async authorize(credentials): Promise<User | null> {
         if (!credentials?.email || !credentials?.password) return null
 
-        // AUTH: Primary — validate against Flask backend (/api/v1/auth/login).
-        // FLASK_INTERNAL_URL is a server-only env var (never sent to the browser).
         const flaskUrl =
           process.env.FLASK_INTERNAL_URL ??
           process.env.NEXT_PUBLIC_API_URL ??
@@ -56,23 +57,15 @@ export const authOptions: AuthOptions = {
 
           console.log('[authorize] res.ok=false, status:', res.status)
 
-          // AUTH: 403 = email not verified — throw so NextAuth surfaces the reason
-          // in result.error instead of swallowing it as a generic CredentialsSignin.
-          // useAuth.ts login() catches this and returns 'VERIFY_EMAIL_REQUIRED'.
           if (res.status === 403) throw new Error('VERIFY_EMAIL_REQUIRED')
-
-          // AUTH: Flask returned explicit 400/401/422 — wrong credentials
           if (res.status === 400 || res.status === 401 || res.status === 422) return null
 
-          // AUTH: Unexpected 5xx — fall through to demo fallback below
         } catch (e) {
-          // AUTH: Re-throw VERIFY_EMAIL_REQUIRED so NextAuth propagates it
           if (e instanceof Error && e.message === 'VERIFY_EMAIL_REQUIRED') throw e
-          // AUTH: Flask unreachable (dev / cold start / timeout)
           console.log('[authorize] fetch error:', e instanceof Error ? e.message : String(e))
         }
 
-        // AUTH: Demo fallback — development only. Never active in production.
+        // AUTH: Demo fallback — development only
         if (process.env.NODE_ENV === 'development') {
           const DEMO_EMAIL    = process.env.DEMO_EMAIL    ?? 'demo@sentiquant.com'
           const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? 'demo1234'
@@ -87,49 +80,76 @@ export const authOptions: AuthOptions = {
         return null
       },
     }),
-
-    // ── Google OAuth (uncomment to enable) ────
-    // GoogleProvider({
-    //   clientId:     process.env.GOOGLE_CLIENT_ID!,
-    //   clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    // }),
   ],
 
   // ── Session strategy ───────────────────────
   session: {
-    strategy:    'jwt',
-    maxAge:      7 * 24 * 60 * 60,   // 7 days
-    updateAge:   24 * 60 * 60,        // refresh every 24h
+    strategy:  'jwt',
+    maxAge:    7 * 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
   },
 
-  // ── JWT config ─────────────────────────────
   jwt: {
     maxAge: 7 * 24 * 60 * 60,
   },
 
   // ── Callbacks ──────────────────────────────
   callbacks: {
-    // AUTH: Attach user id + Flask tokens to JWT (server-side, never in browser)
-    async jwt({ token, user }) {
+    // AUTH: Handle Google sign-in — register/login user via Flask
+    async signIn({ user, account }) {
+      if (account?.provider === 'google') {
+        const flaskUrl =
+          process.env.FLASK_INTERNAL_URL ??
+          process.env.NEXT_PUBLIC_API_URL ??
+          'http://localhost:5000'
+
+        try {
+          const res = await fetch(`${flaskUrl}/api/v1/auth/google`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email:    user.email,
+              name:     user.name,
+              google_id: account.providerAccountId,
+            }),
+          })
+
+          if (res.ok) {
+            const data = await res.json()
+            if (data.success) {
+              // Attach Flask tokens to user object for JWT callback
+              user.id           = String(data.user_id ?? '1')
+              user.plan         = data.plan ?? 'FREE'
+              user.accessToken  = data.access_token
+              user.refreshToken = data.refresh_token
+              return true
+            }
+          }
+        } catch (e) {
+          console.error('[google signIn] Flask error:', e)
+        }
+        return false
+      }
+      return true
+    },
+
+    async jwt({ token, user, account }) {
       if (user) {
         token.id    = user.id
         token.name  = user.name
         token.email = user.email
         if (user.plan)         token.plan         = user.plan
-        // AUTH: Store Flask tokens in JWT so they survive page refresh
         if (user.accessToken)  token.accessToken  = user.accessToken
         if (user.refreshToken) token.refreshToken = user.refreshToken
       }
       return token
     },
 
-    // AUTH: Expose id + tokens in session so useAuth.ts can sync them to storage
     async session({ session, token }) {
       if (session.user) {
         session.user.id   = token.id as string
         session.user.plan = (token.plan as string | undefined) ?? 'FREE'
       }
-      // AUTH: Tokens flow: Flask → authorize() → JWT → session → browser storage
       if (token.accessToken)  session.accessToken  = token.accessToken
       if (token.refreshToken) session.refreshToken = token.refreshToken
       return session
@@ -140,12 +160,9 @@ export const authOptions: AuthOptions = {
   pages: {
     signIn:  '/login',
     signOut: '/',
-    error:   '/login',   // error param is appended: /login?error=...
+    error:   '/login',
   },
 
-  // ── Security ───────────────────────────────
   secret: process.env.NEXTAUTH_SECRET,
-
-  // ── Debug (dev only) ───────────────────────
-  debug: process.env.NODE_ENV === 'development',
+  debug:  process.env.NODE_ENV === 'development',
 }
