@@ -6,6 +6,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import { signIn } from 'next-auth/react'
 import { cn } from '@/lib/utils/cn'
 import { useInView, useCountUp } from '@/lib/animations'
 import { use3DTilt } from '@/lib/use3DTilt'
@@ -149,21 +150,33 @@ function accentClass(accent: 'blue' | 'cyan') {
       }
 }
 
-// ANIMATION: stagger lookup — pairs with Tailwind's built-in `delay-*` utilities
 const STAGGER = ['', 'delay-75', 'delay-150', 'delay-200', 'delay-300', 'delay-500'] as const
 
 // ─────────────────────────────────────────────
+//  GOOGLE SIGN IN BUTTON
+// ─────────────────────────────────────────────
+function GoogleSignInButton() {
+  return (
+    <button
+      onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+      className="flex items-center justify-center gap-3 px-6 py-2.5 rounded-xl border border-surface-700 bg-surface-900/80 text-white text-sm font-medium hover:bg-surface-800 hover:border-surface-600 transition-all duration-200 w-full sm:w-auto"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Continue with Google
+    </button>
+  )
+}
+
+// ─────────────────────────────────────────────
 //  FLOATING MOCKUP
-//  Decorative hero right-panel: a sample TCS
-//  stock analysis card with a background
-//  portfolio depth card.
 // ─────────────────────────────────────────────
 function FloatingMockup() {
-  // ANIMATION: Minimal bar heights for the SVG mini-chart — static decorative data
   const chartBars = [38, 52, 44, 61, 70, 64, 78, 85]
-
-  // 3D: Tilt the entire mockup group on mouse move — outer wrapper handles
-  //     perspective so the inner animate-float can still run independently
   const tilt = use3DTilt({ maxTilt: 10, perspective: 1000, scale: 1.02 })
 
   return (
@@ -173,8 +186,6 @@ function FloatingMockup() {
       className="relative w-[300px] xl:w-[320px] select-none card-3d glow-3d shadow-3d"
       aria-hidden="true"
     >
-
-      {/* ANIMATION: Depth card — portfolio summary, offset + blurred */}
       <div className="absolute -bottom-8 -right-8 w-[240px] card rounded-xl p-4 rotate-[-5deg] opacity-50 blur-[1.5px] pointer-events-none">
         <p className="text-[10px] text-surface-500 uppercase tracking-widest font-semibold mb-3">Portfolio</p>
         <div className="flex flex-col gap-2.5">
@@ -194,13 +205,9 @@ function FloatingMockup() {
         </div>
       </div>
 
-      {/* ANIMATION: Main analysis card — hero-entry-mockup enters on page load, then floats */}
       <div className="relative card rounded-xl overflow-hidden p-5 flex flex-col gap-4 shadow-2xl hero-entry-mockup animate-float">
-
-        {/* ANIMATION: Brand-cyan top accent line */}
         <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-brand-blue to-brand-cyan" />
 
-        {/* Header: symbol + AI score badge */}
         <div className="flex items-start justify-between gap-3 pt-1">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
@@ -215,16 +222,13 @@ function FloatingMockup() {
           </div>
         </div>
 
-        {/* Price + change */}
         <div className="flex items-end justify-between">
           <span className="font-mono font-bold text-[26px] text-white leading-none tabular-nums">₹3,842</span>
           <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full">▲ +2.4%</span>
         </div>
 
-        {/* Mini SVG chart */}
         <div className="h-14 flex items-end gap-[3px] px-1">
           {chartBars.map((h, i) => (
-            // ANIMATION: bar heights give static sparkline impression
             <div
               key={i}
               className="flex-1 rounded-sm bg-gradient-to-t from-brand-blue/60 to-brand-cyan/80"
@@ -233,7 +237,6 @@ function FloatingMockup() {
           ))}
         </div>
 
-        {/* Score bar */}
         <div className="relative h-1.5 w-full rounded-full overflow-hidden bg-surface-800/50">
           <div
             className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-brand-blue to-emerald-400"
@@ -241,7 +244,6 @@ function FloatingMockup() {
           />
         </div>
 
-        {/* Targets mini-grid */}
         <div className="grid grid-cols-3 gap-1.5">
           {[
             { label: 'Entry',  val: '₹3,780', cls: 'text-brand-cyan'  },
@@ -255,7 +257,6 @@ function FloatingMockup() {
           ))}
         </div>
 
-        {/* Signal footer */}
         <div className="flex items-center justify-between pt-2 border-t border-surface-800/50">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
@@ -265,7 +266,6 @@ function FloatingMockup() {
         </div>
       </div>
 
-      {/* ANIMATION: Decorative glow particles — soft radial blobs */}
       <div
         className="absolute -top-3 -right-3 w-8 h-8 rounded-full pointer-events-none animate-pulse"
         style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.45), transparent 70%)', animationDuration: '3s' }}
@@ -283,22 +283,18 @@ function FloatingMockup() {
 // ─────────────────────────────────────────────
 export function HomeClient() {
 
-  // 3D: Magnetic hover on the primary hero CTA
   const magneticCta = useMagneticHover<HTMLAnchorElement>(0.22)
 
-  // ANIMATION: One IntersectionObserver hook per scroll-animated section
-  const { ref: statsRef,        inView: statsInView        } = useInView<HTMLDivElement>(0.5)
-  const { ref: howRef,          inView: howInView          } = useInView<HTMLDivElement>(0.05)
-  const { ref: featuresRef,     inView: featuresInView     } = useInView<HTMLDivElement>(0.05)
-  const { ref: seoRef,          inView: seoInView          } = useInView<HTMLDivElement>(0.05)
-  const { ref: faqRef,          inView: faqInView          } = useInView<HTMLDivElement>(0.05)
-  const { ref: ctaRef,          inView: ctaInView          } = useInView<HTMLDivElement>(0.2)
+  const { ref: statsRef,    inView: statsInView    } = useInView<HTMLDivElement>(0.5)
+  const { ref: howRef,      inView: howInView      } = useInView<HTMLDivElement>(0.05)
+  const { ref: featuresRef, inView: featuresInView } = useInView<HTMLDivElement>(0.05)
+  const { ref: seoRef,      inView: seoInView      } = useInView<HTMLDivElement>(0.05)
+  const { ref: faqRef,      inView: faqInView      } = useInView<HTMLDivElement>(0.05)
+  const { ref: ctaRef,      inView: ctaInView      } = useInView<HTMLDivElement>(0.2)
 
-  // ANIMATION: Counter hooks for the numeric stats
-  const counter2 = useCountUp(250,  1800) // "250+"
-  const counter3 = useCountUp(60,   1500) // "60s"
+  const counter2 = useCountUp(250,  1800)
+  const counter3 = useCountUp(60,   1500)
 
-  // ANIMATION: Start counters when the stats bar enters the viewport
   useEffect(() => {
     if (statsInView) {
       counter2.run()
@@ -313,7 +309,6 @@ export function HomeClient() {
       {/* ── HERO ────────────────────────────── */}
       <section className="relative min-h-[92vh] flex items-center px-4 sm:px-6 overflow-hidden">
 
-        {/* Base gradient background */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -322,14 +317,12 @@ export function HomeClient() {
           }}
         />
 
-        {/* Glow layers */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-[-150px] left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-brand-blue opacity-[0.20] blur-[140px]" />
           <div className="absolute bottom-[-200px] left-1/2 -translate-x-1/2 w-[900px] h-[800px] bg-brand-cyan opacity-[0.09] blur-[160px]" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-brand-blue opacity-[0.06] blur-[100px]" />
         </div>
 
-        {/* Grid overlay */}
         <div
           className="absolute inset-0 pointer-events-none opacity-[0.04]"
           style={{
@@ -339,19 +332,16 @@ export function HomeClient() {
           }}
         />
 
-        {/* ANIMATION: Two-column layout — text left, floating mockup right (lg+) */}
         <div className="relative z-10 max-w-6xl mx-auto w-full py-20 sm:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
             {/* Left column: text + CTAs */}
             <div className="flex flex-col items-center lg:items-start gap-7 text-center lg:text-left">
 
-              {/* ANIMATION: hero-entry-1 — badge is first to appear */}
               <div className="hero-entry-1 inline-flex px-4 py-1.5 rounded-full border border-brand-cyan/20 bg-brand-blue/10 text-brand-cyan text-xs font-medium tracking-wide backdrop-blur-md">
                 AI-powered · NSE + BSE · Real-time
               </div>
 
-              {/* ANIMATION: hero-entry-2 — headline */}
               <h1 className="hero-entry-2 font-display text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight">
                 <span className="text-white">Make smarter stock</span>
                 <br />
@@ -360,15 +350,13 @@ export function HomeClient() {
                 </span>
               </h1>
 
-              {/* ANIMATION: hero-entry-3 — subtext */}
               <p className="hero-entry-3 text-lg text-surface-400 max-w-xl leading-relaxed">
                 Instant AI-powered analysis of Indian stocks —
                 signals, targets, and risk insights in under 60 seconds.
               </p>
 
-              {/* ANIMATION: hero-entry-4 — CTA buttons */}
+              {/* CTA buttons */}
               <div className="hero-entry-4 flex flex-col sm:flex-row gap-4">
-                {/* 3D: Primary CTA has magnetic hover — subtly follows cursor */}
                 <Link
                   ref={magneticCta.ref}
                   style={magneticCta.style}
@@ -385,13 +373,17 @@ export function HomeClient() {
                 </Link>
               </div>
 
-              {/* ANIMATION: hero-entry-5 — trust line */}
-              <p className="hero-entry-5 text-xs text-surface-600">
-                No credit card required · Free forever on Starter plan
-              </p>
+              {/* Google Sign In — seamless one-click login on landing page */}
+              <div className="hero-entry-5 flex flex-col items-center lg:items-start gap-2 w-full sm:w-auto">
+                <GoogleSignInButton />
+                <p className="text-xs text-surface-600">
+                  No credit card required · Free forever on Starter plan
+                </p>
+              </div>
+
             </div>
 
-            {/* ANIMATION: Right column — floating stock card mockup (desktop only) */}
+            {/* Right column — floating mockup */}
             <div className="hidden lg:flex items-center justify-center pl-4 xl:pl-8">
               <FloatingMockup />
             </div>
@@ -406,12 +398,10 @@ export function HomeClient() {
           <div className="absolute left-1/2 -translate-x-1/2 top-[-100px] w-[500px] h-[300px] bg-brand-blue/8 blur-[120px]" />
         </div>
 
-        {/* ANIMATION: ref triggers counters when this section scrolls into view */}
         <div
           ref={statsRef}
           className="relative max-w-5xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-2 sm:grid-cols-3 gap-8"
         >
-          {/* ANIMATION: counter-animated stats */}
           {[
             { display: statsInView ? `${counter2.count}+`   : '250+',  label: 'NSE & BSE stocks covered' },
             { display: statsInView ? `< ${counter3.count}s` : '< 60s', label: 'To a full AI analysis' },
@@ -421,7 +411,6 @@ export function HomeClient() {
               key={label}
               className={cn(
                 'group relative flex flex-col items-center gap-2 text-center transition-all duration-300',
-                // ANIMATION: stats items fade up when the section scrolls into view
                 'scroll-reveal', statsInView && 'in-view',
                 STAGGER[i],
               )}
@@ -440,7 +429,6 @@ export function HomeClient() {
         </div>
       </section>
 
-
       {/* ── HOW IT WORKS ────────────────────── */}
       <section className="border-t border-surface-800 bg-surface-900/30 py-20 sm:py-28 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto flex flex-col gap-14">
@@ -455,12 +443,10 @@ export function HomeClient() {
             </p>
           </div>
 
-          {/* ANIMATION: steps stagger in — ref on the grid */}
           <div ref={howRef} className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {HOW_IT_WORKS.map((step, i) => {
               const isLast = i === HOW_IT_WORKS.length - 1
               return (
-                // ANIMATION: each step staggered by STAGGER[i]
                 <div
                   key={step.step}
                   className={cn('group flex flex-col gap-5 scroll-reveal', howInView && 'in-view', STAGGER[i])}
@@ -495,21 +481,13 @@ export function HomeClient() {
       </section>
 
       {/* ── PRODUCT-SHOWCASE: Feature Carousel ─ */}
-      {/* PRODUCT-SHOWCASE: Replaces StockCarousel3D — evergreen product capabilities */}
       <FeatureShowcase3D />
 
       {/* ── PRODUCT-SHOWCASE: AI Process + Particle */}
-      {/* PRODUCT-SHOWCASE: Left = AI analysis steps (replaces stock chart);
-          Right = particle network (unchanged — already evergreen) */}
       <section className="border-t border-surface-800 bg-surface-900/30 py-20 sm:py-24 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-
-          {/* Left: AI analysis flow visualization */}
           <AIFlowVisualization />
-
-          {/* Right: particle canvas with overlay copy */}
           <ParticleFlow3D />
-
         </div>
       </section>
 
@@ -529,12 +507,10 @@ export function HomeClient() {
           </p>
         </div>
 
-        {/* ANIMATION: feature cards stagger in — ref on the grid wrapper */}
         <div ref={featuresRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {FEATURES.map((feature, i) => {
             const ac = accentClass(feature.accent)
             return (
-              // ANIMATION: each card staggered with STAGGER[i % 6]
               <div
                 key={feature.title}
                 className={cn(
@@ -566,7 +542,6 @@ export function HomeClient() {
 
       {/* ── SEO TEXT BLOCK ──────────────────── */}
       <section className="border-t border-surface-800 bg-surface-900/20 py-16 px-4 sm:px-6">
-        {/* ANIMATION: ref on the grid — triggers both columns when section enters view */}
         <div ref={seoRef} className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
 
           <div className={cn('flex flex-col gap-5 scroll-reveal', seoInView && 'in-view')}>
@@ -587,7 +562,6 @@ export function HomeClient() {
             </Link>
           </div>
 
-          {/* ANIMATION: second column staggers in with a short delay */}
           <div className={cn('flex flex-col gap-4 scroll-reveal delay-150', seoInView && 'in-view')}>
             <h3 className="font-display font-bold text-lg text-white">
               Covers every major NSE sector
@@ -617,7 +591,6 @@ export function HomeClient() {
       {/* ── FAQ (SEO) ───────────────────────── */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-20 flex flex-col gap-10">
 
-        {/* ANIMATION: FAQ header fades in on scroll */}
         <div className={cn('text-center flex flex-col gap-3 scroll-reveal', faqInView && 'in-view')}>
           <span className="text-xs font-semibold text-brand-cyan uppercase tracking-widest">FAQ</span>
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">
@@ -625,7 +598,6 @@ export function HomeClient() {
           </h2>
         </div>
 
-        {/* JSON-LD FAQ schema — SSR'd even in client component; bots see it in initial HTML */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -668,7 +640,6 @@ export function HomeClient() {
           }}
         />
 
-        {/* ANIMATION: ref on the list — triggers header + items when list enters view */}
         <div ref={faqRef} className="flex flex-col divide-y divide-surface-800">
           {[
             {
@@ -696,7 +667,6 @@ export function HomeClient() {
               a: 'No. Sentiquant provides AI-generated analysis to help you make more informed decisions. It is not SEBI-registered advice. Always conduct your own research before investing in NSE or BSE stocks.',
             },
           ].map(({ q, a }, i) => (
-            // ANIMATION: each FAQ item staggers in when the list enters view
             <details
               key={q}
               className={cn(
@@ -735,7 +705,6 @@ export function HomeClient() {
           <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[400px] h-[300px] bg-brand-cyan opacity-[0.05] blur-[120px]" />
         </div>
 
-        {/* ANIMATION: CTA block fades in on scroll */}
         <div
           ref={ctaRef}
           className={cn('relative max-w-2xl mx-auto text-center flex flex-col items-center gap-6 scroll-reveal', ctaInView && 'in-view')}
@@ -770,6 +739,9 @@ export function HomeClient() {
               View dashboard →
             </Link>
           </div>
+
+          {/* Google Sign In in bottom CTA too */}
+          <GoogleSignInButton />
 
           <p className="text-xs text-surface-700">
             Not financial advice. Always do your own research.
