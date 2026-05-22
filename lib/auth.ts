@@ -3,15 +3,12 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
 
 export const authOptions: AuthOptions = {
-  // ── Providers ─────────────────────────────
   providers: [
-    // ── Google OAuth ──────────────────────────
     GoogleProvider({
       clientId:     process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
 
-    // ── Credentials (email + password) ────────
     CredentialsProvider({
       name: 'credentials',
       credentials: {
@@ -65,7 +62,6 @@ export const authOptions: AuthOptions = {
           console.log('[authorize] fetch error:', e instanceof Error ? e.message : String(e))
         }
 
-        // AUTH: Demo fallback — development only
         if (process.env.NODE_ENV === 'development') {
           const DEMO_EMAIL    = process.env.DEMO_EMAIL    ?? 'demo@sentiquant.com'
           const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? 'demo1234'
@@ -82,7 +78,6 @@ export const authOptions: AuthOptions = {
     }),
   ],
 
-  // ── Session strategy ───────────────────────
   session: {
     strategy:  'jwt',
     maxAge:    7 * 24 * 60 * 60,
@@ -93,9 +88,7 @@ export const authOptions: AuthOptions = {
     maxAge: 7 * 24 * 60 * 60,
   },
 
-  // ── Callbacks ──────────────────────────────
   callbacks: {
-    // AUTH: Handle Google sign-in — register/login user via Flask
     async signIn({ user, account }) {
       if (account?.provider === 'google') {
         const flaskUrl =
@@ -108,8 +101,8 @@ export const authOptions: AuthOptions = {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              email:    user.email,
-              name:     user.name,
+              email:     user.email,
+              name:      user.name,
               google_id: account.providerAccountId,
             }),
           })
@@ -117,7 +110,6 @@ export const authOptions: AuthOptions = {
           if (res.ok) {
             const data = await res.json()
             if (data.success) {
-              // Attach Flask tokens to user object for JWT callback
               user.id           = String(data.user_id ?? '1')
               user.plan         = data.plan ?? 'FREE'
               user.accessToken  = data.access_token
@@ -133,7 +125,8 @@ export const authOptions: AuthOptions = {
       return true
     },
 
-    async jwt({ token, user, account }) {
+    // Fixed: removed unused 'account' parameter
+    async jwt({ token, user }) {
       if (user) {
         token.id    = user.id
         token.name  = user.name
@@ -156,7 +149,6 @@ export const authOptions: AuthOptions = {
     },
   },
 
-  // ── Custom pages ───────────────────────────
   pages: {
     signIn:  '/login',
     signOut: '/',
