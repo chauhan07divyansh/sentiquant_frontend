@@ -5,7 +5,7 @@ import { signIn, useSession } from 'next-auth/react'
 import { cn } from '@/lib/utils/cn'
 
 export function GoogleSignInPrompt() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
   const [visible, setVisible] = useState(false)
   const [dismissed, setDismissed] = useState(false)
   const [loading, setLoading] = useState(false)
