@@ -1,19 +1,17 @@
 import type { Metadata, Viewport } from 'next'
 import { Syne, DM_Sans, DM_Mono } from 'next/font/google'
-import { getServerSession }  from 'next-auth/next'
-import { authOptions }       from '@/lib/auth'
-import { Providers }        from './Providers'
-import { DegradedBanner }   from '@/components/common/DegradedBanner'
-import PlanUpgradeModal     from '@/components/common/PlanUpgradeModal'
-import PageViewTracker      from '@/components/analytics/PageViewTracker'
-import { ErrorBoundary }    from '@/components/ErrorBoundary'
+import { getServerSession }       from 'next-auth/next'
+import { authOptions }            from '@/lib/auth'
+import { Providers }              from './Providers'
+import { DegradedBanner }         from '@/components/common/DegradedBanner'
+import PlanUpgradeModal           from '@/components/common/PlanUpgradeModal'
+import PageViewTracker            from '@/components/analytics/PageViewTracker'
+import { ErrorBoundary }          from '@/components/ErrorBoundary'
+import { GoogleSignInPrompt }     from '@/components/auth/GoogleSignInPrompt'
 import './globals.css'
 
 // ─────────────────────────────────────────────
 //  FONTS
-//  Syne      → display headings (geometric, bold)
-//  DM Sans   → body copy (clean, humanist)
-//  DM Mono   → financial data, numbers, symbols
 // ─────────────────────────────────────────────
 
 const fontSyne = Syne({
@@ -34,8 +32,6 @@ const fontDMMono = DM_Mono({
   subsets:  ['latin'],
   variable: '--font-dm-mono',
   display:  'swap',
-  // PERF: removed weight '300' — no font-light usage exists on font-mono elements.
-  //       Each DM Mono weight is a separate font file request; dropping one saves ~15 KB.
   weight:   ['400', '500'],
 })
 
@@ -43,11 +39,7 @@ const fontDMMono = DM_Mono({
 //  METADATA
 // ─────────────────────────────────────────────
 
-// SEO: metadataBase is required for Next.js to resolve relative URLs in
-//      openGraph.url, twitter.images, and alternates.canonical fields.
-//      Without it, Next.js emits a warning and OG/canonical tags are wrong.
 export const metadata: Metadata = {
-  // SEO: metadataBase — must be set so canonical / OG URLs are absolute
   metadataBase: new URL('https://sentiquant.com'),
   title: {
     default:  'Sentiquant — AI Stock Analysis for Indian Markets',
@@ -89,10 +81,10 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor:      '#09090b',
-  colorScheme:     'dark light',
-  width:           'device-width',
-  initialScale:    1,
+  themeColor:   '#09090b',
+  colorScheme:  'dark light',
+  width:        'device-width',
+  initialScale: 1,
 }
 
 // ─────────────────────────────────────────────
@@ -105,7 +97,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang="en"
       className="dark"
-      suppressHydrationWarning     // needed for theme class toggle
+      suppressHydrationWarning
     >
       <body
         className={`
@@ -115,28 +107,28 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           antialiased min-h-dvh bg-[var(--bg-page)] text-[var(--text-primary)]
         `}
       >
-        {/* SEO: Organization JSON-LD — tells Google this is a named company/product */}
+        {/* SEO: Organization JSON-LD */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
-              '@context':   'https://schema.org',
-              '@type':      'Organization',
-              name:         'Sentiquant',
-              url:          'https://sentiquant.com',
-              description:  'AI-powered financial sentiment analysis for Indian equity markets.',
+              '@context':  'https://schema.org',
+              '@type':     'Organization',
+              name:        'Sentiquant',
+              url:         'https://sentiquant.com',
+              description: 'AI-powered financial sentiment analysis for Indian equity markets.',
             }),
           }}
         />
-        {/* SEO: WebSite JSON-LD with SearchAction — enables Google Sitelinks search box */}
+        {/* SEO: WebSite JSON-LD with SearchAction */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
-              '@context':        'https://schema.org',
-              '@type':           'WebSite',
-              name:              'Sentiquant',
-              url:               'https://sentiquant.com',
+              '@context':      'https://schema.org',
+              '@type':         'WebSite',
+              name:            'Sentiquant',
+              url:             'https://sentiquant.com',
               potentialAction: {
                 '@type':       'SearchAction',
                 target:        'https://sentiquant.com/stocks?q={search_term_string}',
@@ -150,6 +142,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PageViewTracker />
             <DegradedBanner />
             <PlanUpgradeModal />
+            <GoogleSignInPrompt />
             {children}
           </Providers>
         </ErrorBoundary>
