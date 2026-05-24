@@ -1,36 +1,46 @@
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { getServerSession } from 'next-auth'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { Navbar } from '@/components/layout/Navbar' // FIXED: unified header — Navbar with isDashboard prop replaces separate DashboardHeader for visual continuity across routes
+import { Navbar } from '@/components/layout/Navbar'
 
 // ─────────────────────────────────────────────
 //  DASHBOARD LAYOUT
-//  Used by: /stocks, /portfolio
+//  Used by: /stocks, /portfolio, /dashboard
 //  Has: Navbar (isDashboard) + collapsible Sidebar
 //  Protected: redirects to /login if no session
+//  EXCEPT: /stocks/* routes allow guest access
 // ─────────────────────────────────────────────
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // Server-side auth check — redirect before rendering
   const session = await getServerSession()
-  if (!session) redirect('/login')
+
+  // Allow guests to access /stocks/* for guest mode
+  // All other dashboard routes require authentication
+  if (!session) {
+    const headersList = headers()
+    const pathname = headersList.get('x-invoke-path') ?? headersList.get('x-pathname') ?? ''
+    const isStocksRoute = pathname.startsWith('/stocks')
+
+    if (!isStocksRoute) {
+      redirect('/login')
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-dvh">
-      <Navbar isDashboard /> {/* FIXED: same Navbar component as marketing pages — nav links stay visible for orientation, sidebar toggle replaces mobile hamburger, user avatar replaces auth buttons */}
+      <Navbar isDashboard />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <main
-          className="flex-1 overflow-y-auto overflow-x-hidden min-w-0" // FIXED: min-w-0 prevents content overflow when sidebar is fixed-positioned on mobile
+          className="flex-1 overflow-y-auto overflow-x-hidden min-w-0"
           id="main-content"
           tabIndex={-1}
         >
-          {/* Grid background for dashboard feel */}
           <div className="relative min-h-full">
-            {/* Ambient radial glow — depth layer below grid */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
@@ -39,7 +49,6 @@ export default async function DashboardLayout({
               }}
               aria-hidden="true"
             />
-            {/* Subtle grid overlay */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
