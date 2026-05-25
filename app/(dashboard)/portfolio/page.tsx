@@ -308,13 +308,13 @@ function PortfolioResult({ result, type, onReset }: {
                       {h.risk ? formatINRCompact(h.risk) : '—'}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-400/80 tabular-nums text-[11px]">
-                      {(h as HoldingWithTargets).target_1 ? formatINR((h as HoldingWithTargets).target_1, 0) : '—'}
+                      {(h as HoldingWithTargets).target_1 ? formatINR((h as HoldingWithTargets).target_1!, 0) : '—'}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-400 tabular-nums text-[11px]">
-                      {(h as HoldingWithTargets).target_2 ? formatINR((h as HoldingWithTargets).target_2, 0) : '—'}
+                      {(h as HoldingWithTargets).target_2 ? formatINR((h as HoldingWithTargets).target_2!, 0) : '—'}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-400/60 tabular-nums text-[11px]">
-                      {(h as HoldingWithTargets).target_3 ? formatINR((h as HoldingWithTargets).target_3, 0) : '—'}
+                      {(h as HoldingWithTargets).target_3 ? formatINR((h as HoldingWithTargets).target_3!, 0) : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <ScoreBadge score={h.score} />
@@ -355,8 +355,8 @@ function PortfolioResult({ result, type, onReset }: {
                     { label: 'Stop Loss', value: h.stop_loss ? formatINR(h.stop_loss, 0) : '—',                     color: 'text-rose-400' },
                     { label: 'Risk ₹',   value: h.risk ? formatINRCompact(h.risk) : '—',                                    color: 'text-amber-400' },
                     { label: 'SL %',      value: stopPct != null ? `${stopPct.toFixed(1)}%` : '—',                        color: 'text-rose-400/70' },
-                    { label: 'Target 1',  value: (h as HoldingWithTargets).target_1 ? formatINR((h as HoldingWithTargets).target_1, 0) : '—',           color: 'text-emerald-400' },
-                    { label: 'Target 2',  value: (h as HoldingWithTargets).target_2 ? formatINR((h as HoldingWithTargets).target_2, 0) : '—',           color: 'text-emerald-400' },
+                    { label: 'Target 1',  value: (h as HoldingWithTargets).target_1 ? formatINR((h as HoldingWithTargets).target_1!, 0) : '—',           color: 'text-emerald-400' },
+                    { label: 'Target 2',  value: (h as HoldingWithTargets).target_2 ? formatINR((h as HoldingWithTargets).target_2!, 0) : '—',           color: 'text-emerald-400' },
                   ].map(m => (
                     <div key={m.label}>
                       <p className="text-[9px] text-surface-600 uppercase tracking-wider">{m.label}</p>
