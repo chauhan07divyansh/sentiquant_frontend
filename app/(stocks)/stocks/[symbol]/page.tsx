@@ -187,7 +187,7 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
       {isGuest && (
         <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-brand-blue/10 border border-brand-blue/20 text-sm">
           <span className="text-surface-300">
-            👋 You&apos;re in guest mode — viewing 1 free analysis
+            👋 You&apos;re in guest mode — 1 free analysis without signing up
           </span>
           <Link
             href="/signup"
