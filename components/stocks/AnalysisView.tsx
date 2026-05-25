@@ -483,7 +483,13 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
             </svg>
           }
         >
-          <KVTable rows={techRows} />
+          {techRows.length > 0 ? (
+            <KVTable rows={techRows} />
+          ) : (
+            <p className="text-xs text-surface-500 italic">
+              Technical indicator data is being loaded. Try refreshing the analysis.
+            </p>
+          )}
         </Section>
 
         <Section
@@ -495,7 +501,15 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
             </svg>
           }
         >
-          <KVTable rows={fundRows} />
+          {fundRows.length > 0 ? (
+            <KVTable rows={fundRows} />
+          ) : (
+            <p className="text-xs text-surface-500 italic">
+              {analysis.system_type === 'Swing'
+                ? 'Fundamental data is not included in swing analysis. Switch to Position analysis for full fundamentals.'
+                : 'No fundamental data available for this stock.'}
+            </p>
+          )}
         </Section>
 
         <Section
