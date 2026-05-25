@@ -7,8 +7,6 @@ import { useCreateSwingPortfolio, useCreatePositionPortfolio } from '@/hooks/use
 import { usePortfolioStore } from '@/store'
 import { Button } from '@/components/ui/Button'
 import { BudgetInput, Select } from '@/components/ui/Input'
-import { StatCard } from '@/components/ui/Card'
-import { ScoreBar } from '@/components/ui/DataDisplay'
 import { ErrorState } from '@/components/common/DegradedBanner'
 import { validateSwingForm, validatePositionForm, hasErrors } from '@/lib/utils/validators'
 import { formatINR, formatINRCompact } from '@/lib/utils/formatters'
@@ -16,7 +14,23 @@ import { cn } from '@/lib/utils/cn'
 import { TIME_PERIOD_OPTIONS, RISK_LABELS } from '@/types/portfolio.types'
 import type { PortfolioJob } from '@/lib/api/portfolio.api'
 import type { RiskAppetite } from '@/types/stock.types'
-import type { PortfolioResponse, PortfolioHolding } from '@/types/portfolio.types'
+import type { PortfolioResponse } from '@/types/portfolio.types'
+
+// Extended holding type with targets
+interface HoldingWithTargets {
+  symbol?: string
+  company?: string
+  score?: number
+  price?: number
+  stop_loss?: number
+  risk?: number
+  investment_amount?: number
+  number_of_shares?: number
+  percentage_allocation?: number
+  target_1?: number
+  target_2?: number
+  target_3?: number
+}
 
 // ─────────────────────────────────────────────
 //  PORTFOLIO PROGRESS
@@ -89,14 +103,14 @@ function PortfolioResult({ result, type, onReset }: {
   const [sortKey, setSortKey] = useState<'allocation' | 'score' | 'symbol'>('allocation')
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc')
 
-  const sorted = [...(portfolio ?? [])].sort((a, b) => {
-    let av = sortKey === 'allocation' ? (a.percentage_allocation ?? 0)
+  const sorted = [...(portfolio ?? [])].map(h => h as HoldingWithTargets).sort((a, b) => {
+    const av = sortKey === 'allocation' ? (a.percentage_allocation ?? 0)
            : sortKey === 'score'      ? (a.score ?? 0)
            : (a.symbol ?? '').localeCompare(b.symbol ?? '')
-    let bv = sortKey === 'allocation' ? (b.percentage_allocation ?? 0)
+    const bv = sortKey === 'allocation' ? (b.percentage_allocation ?? 0)
            : sortKey === 'score'      ? (b.score ?? 0)
            : (b.symbol ?? '').localeCompare(a.symbol ?? '')
-    if (sortKey === 'symbol') return sortDir === 'asc' ? (av as unknown as number) : -(av as unknown as number)
+    if (sortKey === 'symbol') return sortDir === 'asc' ? Number(av) : -Number(av)
     return sortDir === 'desc' ? (bv as number) - (av as number) : (av as number) - (bv as number)
   })
 
@@ -199,7 +213,6 @@ function PortfolioResult({ result, type, onReset }: {
         <div className="flex h-3 rounded-full overflow-hidden gap-px">
           {sorted.map((h, i) => {
             const pct = h.percentage_allocation ?? 0
-            const hue = (i * 37) % 360
             return (
               <div key={h.symbol} style={{ width: `${pct}%`, background: `hsl(${190 + (i * 15) % 60}, 70%, ${55 - (i % 3) * 8}%)` }}
                 className="h-full first:rounded-l-full last:rounded-r-full" title={`${h.symbol}: ${pct.toFixed(1)}%`} />
@@ -295,13 +308,13 @@ function PortfolioResult({ result, type, onReset }: {
                       {h.risk ? formatINRCompact(h.risk) : '—'}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-400/80 tabular-nums text-[11px]">
-                      {(h as any).target_1 ? formatINR((h as any).target_1, 0) : '—'}
+                      {(h as HoldingWithTargets).target_1 ? formatINR((h as HoldingWithTargets).target_1, 0) : '—'}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-400 tabular-nums text-[11px]">
-                      {(h as any).target_2 ? formatINR((h as any).target_2, 0) : '—'}
+                      {(h as HoldingWithTargets).target_2 ? formatINR((h as HoldingWithTargets).target_2, 0) : '—'}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-400/60 tabular-nums text-[11px]">
-                      {(h as any).target_3 ? formatINR((h as any).target_3, 0) : '—'}
+                      {(h as HoldingWithTargets).target_3 ? formatINR((h as HoldingWithTargets).target_3, 0) : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <ScoreBadge score={h.score} />
@@ -342,8 +355,8 @@ function PortfolioResult({ result, type, onReset }: {
                     { label: 'Stop Loss', value: h.stop_loss ? formatINR(h.stop_loss, 0) : '—',                     color: 'text-rose-400' },
                     { label: 'Risk ₹',   value: h.risk ? formatINRCompact(h.risk) : '—',                                    color: 'text-amber-400' },
                     { label: 'SL %',      value: stopPct != null ? `${stopPct.toFixed(1)}%` : '—',                        color: 'text-rose-400/70' },
-                    { label: 'Target 1',  value: (h as any).target_1 ? formatINR((h as any).target_1, 0) : '—',           color: 'text-emerald-400' },
-                    { label: 'Target 2',  value: (h as any).target_2 ? formatINR((h as any).target_2, 0) : '—',           color: 'text-emerald-400' },
+                    { label: 'Target 1',  value: (h as HoldingWithTargets).target_1 ? formatINR((h as HoldingWithTargets).target_1, 0) : '—',           color: 'text-emerald-400' },
+                    { label: 'Target 2',  value: (h as HoldingWithTargets).target_2 ? formatINR((h as HoldingWithTargets).target_2, 0) : '—',           color: 'text-emerald-400' },
                   ].map(m => (
                     <div key={m.label}>
                       <p className="text-[9px] text-surface-600 uppercase tracking-wider">{m.label}</p>
