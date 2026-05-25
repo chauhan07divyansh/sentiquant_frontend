@@ -19,7 +19,7 @@ import type { RiskAppetite } from '@/types/stock.types'
 import type { PortfolioResponse, PortfolioHolding } from '@/types/portfolio.types'
 
 // ─────────────────────────────────────────────
-//  PORTFOLIO PROGRESS — shown while job is running
+//  PORTFOLIO PROGRESS
 // ─────────────────────────────────────────────
 function PortfolioProgress({ job }: { job: PortfolioJob | null }) {
   const messages = [
@@ -35,7 +35,6 @@ function PortfolioProgress({ job }: { job: PortfolioJob | null }) {
 
   return (
     <div className="flex flex-col items-center gap-6 py-12 animate-fade-in">
-      {/* Spinner */}
       <div className="relative w-20 h-20">
         <div className="absolute inset-0 rounded-full border-4 border-surface-800" />
         <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-brand-cyan animate-spin" />
@@ -45,30 +44,19 @@ function PortfolioProgress({ job }: { job: PortfolioJob | null }) {
           </svg>
         </div>
       </div>
-
       <div className="flex flex-col items-center gap-2 text-center">
-        <h3 className="font-display text-xl font-bold text-surface-900 dark:text-white">
-          Building your portfolio
-        </h3>
-        <p className="text-sm text-surface-400 animate-pulse min-h-[20px]">
-          {messages[msgIndex]}
-        </p>
+        <h3 className="font-display text-xl font-bold text-surface-900 dark:text-white">Building your portfolio</h3>
+        <p className="text-sm text-surface-400 animate-pulse min-h-[20px]">{messages[msgIndex]}</p>
       </div>
-
-      {/* Progress bar */}
       <div className="w-full max-w-sm flex flex-col gap-2">
         <div className="h-2 bg-surface-800 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-brand-blue to-brand-cyan rounded-full transition-all duration-1000"
-            style={{ width: `${job?.progress ?? 5}%` }}
-          />
+          <div className="h-full bg-gradient-to-r from-brand-blue to-brand-cyan rounded-full transition-all duration-1000" style={{ width: `${job?.progress ?? 5}%` }} />
         </div>
         <div className="flex justify-between text-[11px] text-surface-500 font-mono">
           <span>{job?.status === 'queued' ? 'Queued…' : 'Scanning 240 stocks'}</span>
           <span>{job?.progress ?? 0}%</span>
         </div>
       </div>
-
       <p className="text-xs text-surface-600 text-center max-w-xs leading-relaxed">
         This takes 5–8 minutes. You can leave this page — your portfolio will be ready when you return.
       </p>
@@ -77,112 +65,20 @@ function PortfolioProgress({ job }: { job: PortfolioJob | null }) {
 }
 
 // ─────────────────────────────────────────────
-//  HOLDING CARD — expandable single-stock row
+//  SCORE BADGE
 // ─────────────────────────────────────────────
-function HoldingCard({ holding, index }: { holding: PortfolioHolding; index: number }) {
-  const [expanded, setExpanded] = useState(false)
-
-  const stopPct = holding.price && holding.stop_loss
-    ? ((holding.stop_loss - holding.price) / holding.price) * 100
-    : null
-
-  const scoreColor =
-    holding.score == null   ? ''
-    : holding.score >= 70   ? 'bg-emerald-400/10 text-emerald-400'
-    : holding.score >= 50   ? 'bg-amber-400/10 text-amber-400'
-    : 'bg-rose-400/10 text-rose-400'
-
+function ScoreBadge({ score }: { score: number | null | undefined }) {
+  if (score == null) return <span className="text-surface-600 font-mono text-xs">—</span>
+  const color = score >= 70 ? 'text-emerald-400 bg-emerald-400/10' : score >= 50 ? 'text-amber-400 bg-amber-400/10' : 'text-rose-400 bg-rose-400/10'
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900">
-      <button
-        onClick={() => setExpanded(v => !v)}
-        className="w-full px-4 py-3.5 text-left hover:bg-gray-50 dark:hover:bg-surface-800/30 transition-colors duration-150"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-blue/15 to-brand-cyan/15 border border-brand-cyan/20 flex items-center justify-center shrink-0">
-            <span className="text-[10px] font-bold font-mono text-brand-cyan">{index + 1}</span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono font-bold text-sm text-surface-900 dark:text-white">{holding.symbol ?? '—'}</span>
-              {holding.score != null && (
-                <span className={cn('text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-md', scoreColor)}>
-                  {Math.round(holding.score)}
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-surface-500 truncate mt-0.5">{holding.company ?? ''}</p>
-          </div>
-          <div className="text-right shrink-0">
-            <p className="font-mono text-sm font-bold text-surface-900 dark:text-white tabular-nums">
-              {holding.investment_amount ? formatINRCompact(holding.investment_amount) : '—'}
-            </p>
-            <p className="text-[11px] font-mono text-brand-cyan tabular-nums">
-              {holding.percentage_allocation?.toFixed(1) ?? '—'}%
-            </p>
-          </div>
-          <svg
-            width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor"
-            strokeWidth="1.5" strokeLinecap="round"
-            className={cn('text-surface-500 shrink-0 transition-transform duration-200', expanded && 'rotate-180')}
-          >
-            <path d="M2.5 4.5l3 3 3-3" />
-          </svg>
-        </div>
-        {holding.percentage_allocation != null && (
-          <div className="mt-2.5 h-1.5 bg-gray-100 dark:bg-surface-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-brand-blue/70 to-brand-cyan/70 rounded-full"
-              style={{ width: `${Math.min(100, holding.percentage_allocation)}%` }}
-            />
-          </div>
-        )}
-      </button>
-      {expanded && (
-        <div className="px-4 pb-4 pt-3 border-t border-gray-100 dark:border-surface-800 animate-fade-in">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div>
-              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider mb-1">Entry Price</p>
-              <p className="font-mono text-sm font-semibold text-surface-900 dark:text-white tabular-nums">
-                {holding.price ? formatINR(holding.price, 0) : '—'}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider mb-1">Shares</p>
-              <p className="font-mono text-sm font-semibold text-surface-900 dark:text-white tabular-nums">
-                {holding.number_of_shares ? Math.round(holding.number_of_shares) : '—'}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider mb-1">Stop Loss</p>
-              <p className="font-mono text-sm font-semibold text-rose-400 tabular-nums">
-                {holding.stop_loss ? formatINR(holding.stop_loss, 0) : '—'}
-              </p>
-              {stopPct != null && (
-                <p className="text-[10px] text-rose-400/70 tabular-nums mt-0.5">{stopPct.toFixed(2)}%</p>
-              )}
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider mb-1">Risk Amount</p>
-              <p className="font-mono text-sm font-semibold text-amber-400 tabular-nums">
-                {holding.risk ? formatINR(holding.risk, 0) : '—'}
-              </p>
-            </div>
-          </div>
-          {holding.score != null && (
-            <div className="mt-4">
-              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider mb-2">AI Score</p>
-              <ScoreBar score={holding.score} showValue />
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-md font-mono font-bold text-xs tabular-nums', color)}>
+      {Math.round(score)}
+    </span>
   )
 }
 
 // ─────────────────────────────────────────────
-//  PORTFOLIO RESULT
+//  PORTFOLIO RESULT — full table view
 // ─────────────────────────────────────────────
 function PortfolioResult({ result, type, onReset }: {
   result: PortfolioResponse
@@ -190,142 +86,306 @@ function PortfolioResult({ result, type, onReset }: {
   onReset: () => void
 }) {
   const { summary, portfolio } = result
-  const sorted = [...(portfolio ?? [])].sort(
-    (a, b) => (b.percentage_allocation ?? 0) - (a.percentage_allocation ?? 0)
+  const [sortKey, setSortKey] = useState<'allocation' | 'score' | 'symbol'>('allocation')
+  const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc')
+
+  const sorted = [...(portfolio ?? [])].sort((a, b) => {
+    let av = sortKey === 'allocation' ? (a.percentage_allocation ?? 0)
+           : sortKey === 'score'      ? (a.score ?? 0)
+           : (a.symbol ?? '').localeCompare(b.symbol ?? '')
+    let bv = sortKey === 'allocation' ? (b.percentage_allocation ?? 0)
+           : sortKey === 'score'      ? (b.score ?? 0)
+           : (b.symbol ?? '').localeCompare(a.symbol ?? '')
+    if (sortKey === 'symbol') return sortDir === 'asc' ? (av as unknown as number) : -(av as unknown as number)
+    return sortDir === 'desc' ? (bv as number) - (av as number) : (av as number) - (bv as number)
+  })
+
+  const deployedPct = summary.total_budget > 0 ? (summary.total_allocated / summary.total_budget) * 100 : 0
+
+  const handleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    else { setSortKey(key); setSortDir('desc') }
+  }
+
+  const SortIcon = ({ k }: { k: typeof sortKey }) => (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+      className={cn('ml-1 inline-block transition-all', sortKey === k ? 'text-brand-cyan' : 'text-surface-600')}>
+      {sortKey === k && sortDir === 'asc'
+        ? <path d="M2 7l3-4 3 4" />
+        : <path d="M2 3l3 4 3-4" />}
+    </svg>
   )
-  const deployedPct = summary.total_budget > 0
-    ? (summary.total_allocated / summary.total_budget) * 100
-    : 0
 
   const handleDownload = () => {
     const lines = [
-      'SENTIQUANT AI PORTFOLIO', '═'.repeat(40), '',
-      'Portfolio Summary', '─'.repeat(20),
-      `Strategy:        ${type === 'swing' ? 'Swing Trading' : 'Position Trading'}`,
-      `Total Budget:    ${formatINR(summary.total_budget, 0)}`,
-      `Total Allocated: ${formatINR(summary.total_allocated, 0)} (${deployedPct.toFixed(1)}% deployed)`,
-      `Cash Remaining:  ${formatINR(summary.remaining_cash, 0)}`,
-      `Avg AI Score:    ${Math.round(summary.average_score)}/100`,
-      `Positions:       ${summary.diversification}`, '',
-      'Stock Allocation', '─'.repeat(20),
-      ...(portfolio ?? []).map((h, i) => [
-        `${i + 1}. ${h.symbol ?? '—'} — ${h.company ?? ''}`,
-        `   Allocation: ${h.investment_amount ? formatINR(h.investment_amount, 0) : '—'} (${h.percentage_allocation?.toFixed(1) ?? '—'}%)`,
-        `   Entry Price: ${h.price ? formatINR(h.price, 0) : '—'} | Shares: ${h.number_of_shares ? Math.round(h.number_of_shares) : '—'}`,
-        `   Stop Loss:   ${h.stop_loss ? formatINR(h.stop_loss, 0) : '—'} | Risk: ${h.risk ? formatINR(h.risk, 0) : '—'}`,
-        `   AI Score:    ${h.score != null ? `${Math.round(h.score)}/100` : '—'}`, '',
-      ].join('\n')),
-      '═'.repeat(40), `Generated by SentiQuant AI`,
-      `Date: ${new Date().toLocaleString('en-IN')}`, '═'.repeat(40), '',
-      'DISCLAIMER: This portfolio is AI-generated for informational purposes only.',
-      'It does not constitute financial advice.',
+      'SENTIQUANT AI PORTFOLIO', '═'.repeat(60), '',
+      `Strategy: ${type === 'swing' ? 'Swing Trading' : 'Position Trading'}`,
+      `Budget: ${formatINR(summary.total_budget, 0)} | Allocated: ${formatINR(summary.total_allocated, 0)} (${deployedPct.toFixed(1)}%)`,
+      `Cash: ${formatINR(summary.remaining_cash, 0)} | Avg Score: ${Math.round(summary.average_score)}/100 | Positions: ${summary.diversification}`,
+      '', '─'.repeat(60),
+      'No | Symbol | Company | Alloc% | Amount | Price | Shares | Stop Loss | Score',
+      '─'.repeat(60),
+      ...(portfolio ?? []).map((h, i) =>
+        `${String(i+1).padStart(2)} | ${(h.symbol??'').padEnd(10)} | ${(h.company??'').substring(0,20).padEnd(20)} | ${(h.percentage_allocation?.toFixed(1)??'').padStart(6)}% | ${h.investment_amount?formatINR(h.investment_amount,0):'—'} | ${h.price?formatINR(h.price,0):'—'} | ${h.number_of_shares?Math.round(h.number_of_shares):'—'} | ${h.stop_loss?formatINR(h.stop_loss,0):'—'} | ${h.score!=null?Math.round(h.score)+'%':'—'}`
+      ),
+      '', '═'.repeat(60),
+      `Generated by SentiQuant AI — ${new Date().toLocaleString('en-IN')}`,
+      'DISCLAIMER: AI-generated. Not financial advice.',
     ]
     const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
     a.href = url; a.download = `sentiquant-portfolio-${Date.now()}.txt`
     document.body.appendChild(a); a.click()
     document.body.removeChild(a); URL.revokeObjectURL(url)
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="flex flex-col gap-5">
+
+      {/* ── Header ── */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-emerald-400/15 border border-emerald-400/30 flex items-center justify-center shrink-0">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400">
-                <path d="M2 5l2.2 2.2L8 2.5" />
-              </svg>
-            </div>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-xs font-semibold text-brand-cyan uppercase tracking-widest">
-              {type === 'swing' ? 'Swing' : 'Position'} portfolio
+              {type === 'swing' ? 'Swing' : 'Position'} portfolio · ready
             </span>
           </div>
-          <h2 className="font-display text-2xl font-bold text-surface-900 dark:text-white tracking-tight">Your allocation</h2>
-          <p className="text-sm text-surface-400">{summary.diversification} positions · avg score {Math.round(summary.average_score)}/100</p>
+          <h2 className="font-display text-2xl font-bold text-surface-900 dark:text-white">
+            Your AI portfolio
+          </h2>
+          <p className="text-sm text-surface-400">
+            {summary.diversification} positions · avg score {Math.round(summary.average_score)}/100 · {deployedPct.toFixed(1)}% deployed
+          </p>
         </div>
-        <button onClick={onReset} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-surface-500 dark:text-surface-400 hover:text-surface-900 dark:hover:text-white border border-gray-200 dark:border-surface-700 hover:border-gray-400 dark:hover:border-surface-500 transition-all duration-150 shrink-0">
-          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M9 1.5a4.5 4.5 0 10.9 4.5M9 1.5V5M9 1.5H5.5" /></svg>
-          New portfolio
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleDownload}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 dark:border-surface-700 text-surface-500 hover:text-white hover:border-brand-cyan/40 transition-all">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M6 2v6M3 6l3 3 3-3" /><path d="M2 10h8" />
+            </svg>
+            Export
+          </button>
+          <button onClick={onReset}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-gray-200 dark:border-surface-700 text-surface-500 hover:text-white transition-all">
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M9 1.5a4.5 4.5 0 10.9 4.5M9 1.5V5M9 1.5H5.5" />
+            </svg>
+            New
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      {/* ── Summary cards ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total budget',    value: <span className="font-mono text-xl tabular-nums">{formatINRCompact(summary.total_budget)}</span> },
-          { label: 'Allocated',       value: <span className="font-mono text-xl tabular-nums text-brand-cyan">{formatINRCompact(summary.total_allocated)}</span>, sub: <span className="text-xs text-surface-400">{deployedPct.toFixed(1)}% deployed</span>, highlight: true },
-          { label: 'Cash remaining',  value: <span className="font-mono text-xl tabular-nums">{formatINRCompact(summary.remaining_cash)}</span> },
-          { label: 'Avg AI score',    value: <span className="font-mono text-xl tabular-nums">{Math.round(summary.average_score)}<span className="text-surface-500 text-base font-normal">/100</span></span>, sub: <span className="text-xs text-surface-400">{summary.diversification} positions</span> },
-        ].map((card, i) => (
-          <div key={card.label} className="animate-pop-in" style={{ animationDelay: `${i * 80}ms` }}>
-            <StatCard label={card.label} value={card.value} sub={card.sub}
-              className={card.highlight
-                ? 'bg-gradient-to-br from-brand-blue/10 to-brand-cyan/10 border border-brand-cyan/30 shadow-[0_8px_30px_rgba(6,182,212,0.12)]'
-                : 'bg-white dark:bg-surface-900/60 border-gray-200 dark:border-surface-700/60'}
-            />
+          { label: 'Total budget',   value: formatINRCompact(summary.total_budget),   color: '' },
+          { label: 'Allocated',      value: formatINRCompact(summary.total_allocated), color: 'text-brand-cyan', sub: `${deployedPct.toFixed(1)}% deployed` },
+          { label: 'Cash remaining', value: formatINRCompact(summary.remaining_cash),  color: '' },
+          { label: 'Avg AI score',   value: `${Math.round(summary.average_score)}/100`, color: summary.average_score >= 70 ? 'text-emerald-400' : 'text-amber-400' },
+        ].map((c, i) => (
+          <div key={c.label} className="rounded-xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4 animate-pop-in" style={{ animationDelay: `${i*60}ms` }}>
+            <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider mb-1">{c.label}</p>
+            <p className={cn('font-mono font-bold text-lg tabular-nums', c.color || 'text-surface-900 dark:text-white')}>{c.value}</p>
+            {c.sub && <p className="text-[10px] text-surface-500 mt-0.5">{c.sub}</p>}
           </div>
         ))}
       </div>
 
-      {portfolio && portfolio.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-surface-900 dark:text-white flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-cyan"><path d="M2 4h10M2 7h7M2 10h4" /></svg>
-              Holdings · {portfolio.length} positions
-            </h3>
-            <span className="text-[10px] text-surface-500">Tap a row to expand</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            {portfolio.map((h, i) => (
-              <div key={`${h.symbol}-${i}`} className="animate-fade-in" style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}>
-                <HoldingCard holding={h} index={i} />
-              </div>
-            ))}
-          </div>
+      {/* ── Allocation bar ── */}
+      <div className="rounded-xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4">
+        <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider mb-3">Allocation breakdown</p>
+        <div className="flex h-3 rounded-full overflow-hidden gap-px">
+          {sorted.map((h, i) => {
+            const pct = h.percentage_allocation ?? 0
+            const hue = (i * 37) % 360
+            return (
+              <div key={h.symbol} style={{ width: `${pct}%`, background: `hsl(${190 + (i * 15) % 60}, 70%, ${55 - (i % 3) * 8}%)` }}
+                className="h-full first:rounded-l-full last:rounded-r-full" title={`${h.symbol}: ${pct.toFixed(1)}%`} />
+            )
+          })}
         </div>
-      )}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+          {sorted.slice(0, 8).map((h, i) => (
+            <div key={h.symbol} className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-sm shrink-0" style={{ background: `hsl(${190 + (i * 15) % 60}, 70%, ${55 - (i % 3) * 8}%)` }} />
+              <span className="text-[10px] font-mono text-surface-400">{h.symbol} {h.percentage_allocation?.toFixed(1)}%</span>
+            </div>
+          ))}
+          {sorted.length > 8 && <span className="text-[10px] text-surface-600">+{sorted.length - 8} more</span>}
+        </div>
+      </div>
 
-      {sorted.length > 0 && (
-        <div className="rounded-xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-gray-100 dark:border-surface-800 bg-gray-50/60 dark:bg-surface-900/60">
-            <h3 className="text-sm font-semibold text-surface-900 dark:text-white flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-cyan"><circle cx="7" cy="7" r="5.5" /><path d="M7 3v4l2.5 2.5" /></svg>
-              Allocation breakdown
-            </h3>
-          </div>
-          <div className="px-5 py-4 flex flex-col gap-3">
-            {sorted.map((h) => {
-              if (!h.symbol || h.percentage_allocation == null) return null
-              return (
-                <div key={h.symbol} className="flex items-center gap-3">
-                  <span className="font-mono text-xs font-semibold text-surface-900 dark:text-white w-20 shrink-0 truncate">{h.symbol}</span>
-                  <div className="flex-1 h-2 bg-gray-100 dark:bg-surface-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-brand-blue/70 to-brand-cyan/70 rounded-full" style={{ width: `${Math.min(100, h.percentage_allocation)}%` }} />
+      {/* ── Full portfolio table ── */}
+      <div className="rounded-xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-gray-100 dark:border-surface-800 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-surface-900 dark:text-white flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-cyan">
+              <path d="M2 4h10M2 7h7M2 10h4" />
+            </svg>
+            Holdings · {portfolio?.length ?? 0} positions
+          </h3>
+          <span className="text-[10px] text-surface-500">Click column to sort</span>
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-surface-800 bg-gray-50/50 dark:bg-surface-900/50">
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-surface-500 uppercase tracking-wider w-8">#</th>
+                <th className="text-left px-4 py-3 text-[10px] font-semibold text-surface-500 uppercase tracking-wider cursor-pointer hover:text-white" onClick={() => handleSort('symbol')}>
+                  Stock <SortIcon k="symbol" />
+                </th>
+                <th className="text-right px-4 py-3 text-[10px] font-semibold text-surface-500 uppercase tracking-wider cursor-pointer hover:text-white" onClick={() => handleSort('allocation')}>
+                  Allocation <SortIcon k="allocation" />
+                </th>
+                <th className="text-right px-4 py-3 text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Amount</th>
+                <th className="text-right px-4 py-3 text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Price</th>
+                <th className="text-right px-4 py-3 text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Shares</th>
+                <th className="text-right px-4 py-3 text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Stop Loss</th>
+                <th className="text-right px-4 py-3 text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Risk ₹</th>
+                <th className="text-right px-4 py-3 text-[10px] font-semibold text-surface-500 uppercase tracking-wider">T1</th>
+                <th className="text-right px-4 py-3 text-[10px] font-semibold text-surface-500 uppercase tracking-wider">T2</th>
+                <th className="text-right px-4 py-3 text-[10px] font-semibold text-surface-500 uppercase tracking-wider">T3</th>
+                <th className="text-right px-4 py-3 text-[10px] font-semibold text-surface-500 uppercase tracking-wider cursor-pointer hover:text-white" onClick={() => handleSort('score')}>
+                  Score <SortIcon k="score" />
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-surface-800/60">
+              {sorted.map((h, i) => {
+                const stopPct = h.price && h.stop_loss
+                  ? ((h.stop_loss - h.price) / h.price) * 100 : null
+                return (
+                  <tr key={`${h.symbol}-${i}`} className="hover:bg-gray-50/50 dark:hover:bg-surface-800/20 transition-colors group animate-fade-in" style={{ animationDelay: `${i * 20}ms`, animationFillMode: 'both' }}>
+                    <td className="px-4 py-3 text-surface-600 font-mono tabular-nums">{i + 1}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-mono font-bold text-surface-900 dark:text-white text-sm">{h.symbol ?? '—'}</span>
+                        <span className="text-[10px] text-surface-500 truncate max-w-[140px]">{h.company ?? ''}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="font-mono font-bold text-brand-cyan tabular-nums">{h.percentage_allocation?.toFixed(1) ?? '—'}%</span>
+                        <div className="w-16 h-1.5 bg-gray-100 dark:bg-surface-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-brand-blue/70 to-brand-cyan/70 rounded-full"
+                            style={{ width: `${Math.min(100, h.percentage_allocation ?? 0)}%` }} />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono font-semibold text-surface-900 dark:text-white tabular-nums text-sm">
+                      {h.investment_amount ? formatINRCompact(h.investment_amount) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-surface-300 tabular-nums">
+                      {h.price ? formatINR(h.price, 0) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-surface-300 tabular-nums">
+                      {h.number_of_shares ? Math.round(h.number_of_shares) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="font-mono text-rose-400 tabular-nums">{h.stop_loss ? formatINR(h.stop_loss, 0) : '—'}</span>
+                        {stopPct != null && <span className="text-[10px] text-rose-400/60 tabular-nums">{stopPct.toFixed(1)}%</span>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-amber-400 tabular-nums">
+                      {h.risk ? formatINRCompact(h.risk) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-emerald-400/80 tabular-nums text-[11px]">
+                      {(h as any).target_1 ? formatINR((h as any).target_1, 0) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-emerald-400 tabular-nums text-[11px]">
+                      {(h as any).target_2 ? formatINR((h as any).target_2, 0) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono text-emerald-400/60 tabular-nums text-[11px]">
+                      {(h as any).target_3 ? formatINR((h as any).target_3, 0) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <ScoreBadge score={h.score} />
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile cards — compact, all data visible */}
+        <div className="md:hidden divide-y divide-gray-50 dark:divide-surface-800/60">
+          {sorted.map((h, i) => {
+            const stopPct = h.price && h.stop_loss ? ((h.stop_loss - h.price) / h.price) * 100 : null
+            return (
+              <div key={`${h.symbol}-${i}`} className="p-4 animate-fade-in" style={{ animationDelay: `${i * 20}ms`, animationFillMode: 'both' }}>
+                {/* Row 1: symbol + allocation */}
+                <div className="flex items-start justify-between mb-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[10px] text-surface-600 font-mono w-4">{i+1}</span>
+                    <div>
+                      <p className="font-mono font-bold text-sm text-white">{h.symbol}</p>
+                      <p className="text-[10px] text-surface-500 truncate max-w-[160px]">{h.company}</p>
+                    </div>
                   </div>
-                  <span className="font-mono text-[11px] text-brand-cyan tabular-nums w-10 text-right shrink-0">{h.percentage_allocation.toFixed(1)}%</span>
+                  <div className="flex items-center gap-2">
+                    <ScoreBadge score={h.score} />
+                    <span className="font-mono font-bold text-brand-cyan text-sm">{h.percentage_allocation?.toFixed(1)}%</span>
+                  </div>
                 </div>
-              )
-            })}
-          </div>
+                {/* Row 2: all metrics in a grid */}
+                <div className="grid grid-cols-3 gap-2 pl-6">
+                  {[
+                    { label: 'Amount',    value: h.investment_amount ? formatINRCompact(h.investment_amount) : '—', color: 'text-white' },
+                    { label: 'Price',     value: h.price ? formatINR(h.price, 0) : '—',                             color: 'text-surface-300' },
+                    { label: 'Shares',    value: h.number_of_shares ? String(Math.round(h.number_of_shares)) : '—', color: 'text-surface-300' },
+                    { label: 'Stop Loss', value: h.stop_loss ? formatINR(h.stop_loss, 0) : '—',                     color: 'text-rose-400' },
+                    { label: 'Risk ₹',   value: h.risk ? formatINRCompact(h.risk) : '—',                                    color: 'text-amber-400' },
+                    { label: 'SL %',      value: stopPct != null ? `${stopPct.toFixed(1)}%` : '—',                        color: 'text-rose-400/70' },
+                    { label: 'Target 1',  value: (h as any).target_1 ? formatINR((h as any).target_1, 0) : '—',           color: 'text-emerald-400' },
+                    { label: 'Target 2',  value: (h as any).target_2 ? formatINR((h as any).target_2, 0) : '—',           color: 'text-emerald-400' },
+                  ].map(m => (
+                    <div key={m.label}>
+                      <p className="text-[9px] text-surface-600 uppercase tracking-wider">{m.label}</p>
+                      <p className={cn('font-mono text-xs font-semibold tabular-nums', m.color)}>{m.value}</p>
+                    </div>
+                  ))}
+                </div>
+                {/* Allocation bar */}
+                <div className="mt-2.5 pl-6">
+                  <div className="h-1 bg-surface-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-brand-blue/70 to-brand-cyan/70 rounded-full"
+                      style={{ width: `${Math.min(100, h.percentage_allocation ?? 0)}%` }} />
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
-      )}
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button onClick={handleDownload} className="group flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-brand-blue to-brand-cyan text-white rounded-xl font-semibold hover:opacity-90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="group-hover:animate-bounce"><path d="M9 3v9M5 8l4 4 4-4" /><path d="M3 14h12" /></svg>
+      {/* ── Actions ── */}
+      <div className="flex gap-3 flex-wrap">
+        <button onClick={handleDownload}
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-blue to-brand-cyan text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all shadow-lg">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 2v8M4 7l4 4 4-4" /><path d="M2 13h12" />
+          </svg>
           Download Portfolio
         </button>
-        <button onClick={onReset} className="flex items-center justify-center gap-3 px-8 py-4 border-2 border-gray-200 dark:border-surface-700 rounded-xl font-semibold text-surface-700 dark:text-surface-300 hover:bg-gray-50 dark:hover:bg-surface-800/40 transition-all">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M13.5 2a6.5 6.5 0 10.9 5M13.5 2v4.5M13.5 2H9" /></svg>
+        <button onClick={onReset}
+          className="flex items-center gap-2 px-6 py-3 border border-gray-200 dark:border-surface-700 rounded-xl font-semibold text-sm text-surface-300 hover:bg-surface-800/40 transition-all">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <path d="M11.5 2a5.5 5.5 0 10.8 4.5M11.5 2v4M11.5 2H7.5" />
+          </svg>
           Generate New Portfolio
         </button>
       </div>
 
+      {/* ── Disclaimer ── */}
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
         <p className="text-xs text-surface-400 leading-relaxed">
-          <span className="font-semibold text-amber-400">Disclaimer:</span> This portfolio is AI-generated for informational purposes only. It does not constitute financial advice. Please conduct your own research and consult a qualified financial advisor.
+          <span className="font-semibold text-amber-400">Disclaimer:</span> AI-generated for informational purposes only. Not financial advice. Please do your own research.
         </p>
       </div>
     </div>
@@ -405,9 +465,7 @@ export default function PortfolioPage() {
   const positionMutation = useCreatePositionPortfolio()
   const mutation         = type === 'swing' ? swingMutation : positionMutation
 
-  const handleProgress = useCallback((job: PortfolioJob) => {
-    setCurrentJob(job)
-  }, [])
+  const handleProgress = useCallback((job: PortfolioJob) => { setCurrentJob(job) }, [])
 
   function goNext() {
     if (step === 2 && !risk) { setFormErrors({ riskAppetite: 'Please select a risk level to continue' }); return }
@@ -477,7 +535,7 @@ export default function PortfolioPage() {
             <WizardStepper step={step} />
             <div key={step} className={direction === 'forward' ? 'animate-step-in' : 'animate-step-back'}>
 
-              {/* Step 1: Strategy */}
+              {/* Step 1 */}
               {step === 1 && (
                 <div className="flex flex-col gap-4">
                   <div><p className="font-semibold text-surface-900 dark:text-white text-lg">What is your goal?</p><p className="text-sm text-surface-400 mt-1">Choose a trading strategy to get started</p></div>
@@ -499,28 +557,28 @@ export default function PortfolioPage() {
                 </div>
               )}
 
-              {/* Step 2: Risk */}
+              {/* Step 2 */}
               {step === 2 && (
                 <div className="flex flex-col gap-4">
                   <div><p className="font-semibold text-surface-900 dark:text-white text-lg">Your risk tolerance</p><p className="text-sm text-surface-400 mt-1">This shapes how aggressively we allocate your budget</p></div>
-                  {formErrors.riskAppetite && (<p className="text-xs text-rose-400 flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M6 1a5 5 0 100 10A5 5 0 006 1zM5.5 3.5h1v4h-1v-4zm0 5h1v1h-1v-1z"/></svg>{formErrors.riskAppetite}</p>)}
+                  {formErrors.riskAppetite && (<p className="text-xs text-rose-400 flex items-center gap-1.5"><svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1a5 5 0 100 10A5 5 0 006 1zM5.5 3.5h1v4h-1v-4zm0 5h1v1h-1v-1z"/></svg>{formErrors.riskAppetite}</p>)}
                   <div className="flex flex-col gap-2">
                     {RISK_OPTIONS.map((opt) => (
                       <button key={opt.value} type="button" onClick={() => { setRisk(opt.value); setFormErrors({}) }}
-                        className={cn('flex items-center gap-4 p-4 rounded-xl border text-left transition-all duration-200 active:scale-[0.99]', risk === opt.value ? opt.activeClass : 'bg-white dark:bg-surface-900/60 border-gray-200 dark:border-surface-700 hover:border-gray-300 dark:hover:border-surface-600')}>
+                        className={cn('flex items-center gap-4 p-4 rounded-xl border text-left transition-all duration-200', risk === opt.value ? opt.activeClass : 'bg-white dark:bg-surface-900/60 border-gray-200 dark:border-surface-700 hover:border-gray-300 dark:hover:border-surface-600')}>
                         <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', opt.iconClass)}>{opt.icon}</div>
                         <div className="flex-1 min-w-0">
                           <p className={cn('font-semibold text-sm', risk === opt.value ? opt.labelClass : 'text-surface-900 dark:text-white')}>{opt.label}</p>
                           <p className="text-xs text-surface-500 mt-0.5">{opt.sub} · {opt.detail}</p>
                         </div>
-                        {risk === opt.value && (<div className={cn('w-5 h-5 rounded-full flex items-center justify-center shrink-0', opt.iconClass)}><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 5l2 2 4-4" /></svg></div>)}
+                        {risk === opt.value && (<div className={cn('w-5 h-5 rounded-full flex items-center justify-center shrink-0', opt.iconClass)}><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 5l2 2 4-4" /></svg></div>)}
                       </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Step 3: Budget */}
+              {/* Step 3 */}
               {step === 3 && (
                 <div className="flex flex-col gap-5">
                   <div><p className="font-semibold text-surface-900 dark:text-white text-lg">Investment details</p><p className="text-sm text-surface-400 mt-1">How much are you investing?</p></div>
@@ -529,8 +587,8 @@ export default function PortfolioPage() {
                     <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider self-center mr-1">Quick:</span>
                     {[50000, 100000, 250000, 500000].map((amt) => (
                       <button key={amt} type="button" onClick={() => { setBudget(String(amt)); setFormErrors({}) }}
-                        className={cn('px-3 py-1.5 rounded-lg border text-xs font-medium font-mono transition-all duration-150', Number(budget) === amt ? 'bg-brand-cyan/10 border-brand-cyan/30 text-brand-cyan' : 'border-gray-200 dark:border-surface-700 text-surface-500 hover:border-brand-cyan/30 hover:text-brand-cyan')}>
-                        ₹{(amt / 1000).toFixed(0)}K
+                        className={cn('px-3 py-1.5 rounded-lg border text-xs font-medium font-mono transition-all', Number(budget) === amt ? 'bg-brand-cyan/10 border-brand-cyan/30 text-brand-cyan' : 'border-gray-200 dark:border-surface-700 text-surface-500 hover:border-brand-cyan/30 hover:text-brand-cyan')}>
+                        ₹{(amt/1000).toFixed(0)}K
                       </button>
                     ))}
                   </div>
@@ -538,7 +596,7 @@ export default function PortfolioPage() {
                 </div>
               )}
 
-              {/* Step 4: Review */}
+              {/* Step 4 */}
               {step === 4 && (
                 <div className="flex flex-col gap-5">
                   <div><p className="font-semibold text-surface-900 dark:text-white text-lg">Ready to build</p><p className="text-sm text-surface-400 mt-1">Review your settings before generating</p></div>
@@ -554,27 +612,23 @@ export default function PortfolioPage() {
                   <div className="rounded-xl border border-brand-cyan/15 bg-brand-cyan/5 p-4">
                     <p className="text-xs text-surface-400 leading-relaxed flex items-start gap-2">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-cyan shrink-0 mt-0.5"><circle cx="7" cy="7" r="5.5" /><path d="M7 5v3M7 9.5v.5" /></svg>
-                      Portfolio generation scans 240 stocks in real time — this takes <strong className="text-surface-300">5–8 minutes</strong>. A progress screen will keep you updated.
+                      Portfolio generation scans 240 stocks — takes <strong className="text-surface-300">5–8 minutes</strong>.
                     </p>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Navigation */}
             <div className={cn('flex gap-3', step > 1 ? 'justify-between' : 'justify-end')}>
               {step > 1 && (
                 <button type="button" onClick={goBack} disabled={isGenerating}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-500 dark:text-surface-400 hover:text-surface-900 dark:hover:text-white border border-gray-200 dark:border-surface-700 hover:border-gray-400 dark:hover:border-surface-500 bg-transparent transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-500 dark:text-surface-400 hover:text-surface-900 dark:hover:text-white border border-gray-200 dark:border-surface-700 hover:border-gray-400 dark:hover:border-surface-500 bg-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M9 3L5 7l4 4" /></svg>
                   Back
                 </button>
               )}
               {step < 4 ? (
-                <Button size="md" onClick={goNext}>
-                  Continue
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M5 3l4 4-4 4" /></svg>
-                </Button>
+                <Button size="md" onClick={goNext}>Continue <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M5 3l4 4-4 4" /></svg></Button>
               ) : (
                 <Button size="lg" loading={isGenerating} onClick={handleGenerate} disabled={isGenerating} className="flex-1 sm:flex-none sm:min-w-[200px] h-11 text-[15px] font-semibold">
                   {isGenerating ? 'Starting…' : 'Build my portfolio'}
@@ -590,7 +644,7 @@ export default function PortfolioPage() {
       )}
 
       <Confetti active={showConfetti} />
-      <SuccessToast show={showToast} message="Portfolio generated!" description="Your AI-powered allocation is ready. Review the positions below." onClose={() => setShowToast(false)} />
+      <SuccessToast show={showToast} message="Portfolio generated!" description="Your AI-powered allocation is ready." onClose={() => setShowToast(false)} />
     </div>
   )
 }
