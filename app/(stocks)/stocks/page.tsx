@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useDeferredValue, useMemo } from 'react'
+import { useState, useDeferredValue, useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { StockListCard, StockListRow } from '@/components/stocks/StockCard'
 import { SearchInput } from '@/components/ui/Input'
@@ -14,11 +14,6 @@ import { SEO_STOCKS } from '@/lib/stocks-seo'
 type ViewMode = 'grid' | 'list'
 type SortOption = 'symbol-asc' | 'symbol-desc' | 'name-asc' | 'name-desc'
 
-// ─────────────────────────────────────────────
-//  SEO ENRICHMENT MAP
-//  Maps symbol → { name, sector } for the ~75 featured stocks.
-//  Stocks not in this map show symbol as name and no sector tag.
-// ─────────────────────────────────────────────
 function normalizeSector(raw: string): string {
   const s = raw.toLowerCase()
   if (s.includes('information technology')) return 'IT Services'
@@ -39,18 +34,19 @@ function normalizeSector(raw: string): string {
 }
 
 const SEO_MAP = new Map(SEO_STOCKS.map(s => [s.symbol, { name: s.name, sector: normalizeSector(s.sector) }]))
-
 const AVAILABLE_SECTORS = Array.from(new Set(SEO_STOCKS.map(s => normalizeSector(s.sector)))).sort()
 
-// ─────────────────────────────────────────────
-//  STOCKS LIST PAGE
-// ─────────────────────────────────────────────
 export default function StocksPage() {
   const [search, setSearch]           = useState('')
-  const [view, setView]               = useState<ViewMode>('grid')
+  const [view, setView]               = useState<ViewMode>('list')
   const [sortBy, setSortBy]           = useState<SortOption>('symbol-asc')
   const [sector, setSector]           = useState('')
   const [showFilters, setShowFilters] = useState(false)
+
+  // PERF: Default to list on mobile, grid on desktop
+  useEffect(() => {
+    if (window.innerWidth >= 640) setView('grid')
+  }, [])
 
   const deferredSearch = useDeferredValue(search)
 
@@ -60,10 +56,9 @@ export default function StocksPage() {
     staleTime: 5 * 60 * 1_000,
   })
 
-  const allStocks  = data?.stocks ?? []
+  const allStocks   = data?.stocks ?? []
   const totalStocks = data?.total  ?? 0
 
-  // Enrich stocks with SEO metadata (name + sector) when available
   const enrichedStocks = useMemo(() =>
     allStocks.map(s => {
       const seo = SEO_MAP.get(s.symbol)
@@ -74,8 +69,6 @@ export default function StocksPage() {
 
   const filtered = useMemo(() => {
     let list = enrichedStocks
-
-    // Text search
     if (deferredSearch) {
       const q = deferredSearch.toLowerCase()
       list = list.filter(s =>
@@ -83,13 +76,9 @@ export default function StocksPage() {
         s.name.toLowerCase().includes(q)
       )
     }
-
-    // Sector filter
     if (sector) {
       list = list.filter(s => s.sector === sector)
     }
-
-    // Sort
     const copy = [...list]
     switch (sortBy) {
       case 'symbol-asc':  copy.sort((a, b) => a.symbol.localeCompare(b.symbol)); break
@@ -108,7 +97,6 @@ export default function StocksPage() {
     setSortBy('symbol-asc')
   }
 
-  // ── Full-page loading skeleton ──────────────
   if (isPending) {
     return (
       <div className="flex flex-col gap-8 dashboard-container-wide">
@@ -123,33 +111,25 @@ export default function StocksPage() {
     )
   }
 
-  // ── Error state ──────────────────────────────
   if (error) {
     return (
       <div className="flex flex-col gap-8 dashboard-container-wide">
         <div className="relative max-w-3xl">
-          <span className="hero-entry-1 block text-xs font-semibold text-brand-cyan uppercase tracking-widest">
-            AI stock signals
-          </span>
-          <h1 className="hero-entry-2 font-display text-3xl sm:text-4xl font-bold text-surface-900 dark:text-white tracking-tight leading-[1.05] mt-2">
-            NSE · BSE Stocks
-          </h1>
+          <span className="hero-entry-1 block text-xs font-semibold text-brand-cyan uppercase tracking-widest">AI stock signals</span>
+          <h1 className="hero-entry-2 font-display text-3xl sm:text-4xl font-bold text-surface-900 dark:text-white tracking-tight leading-[1.05] mt-2">NSE · BSE Stocks</h1>
         </div>
         <div className="card flex flex-col items-center gap-5 py-16 text-center">
           <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shrink-0">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <circle cx="10" cy="10" r="8" />
-              <path d="M10 6v4M10 14h.01" />
+              <circle cx="10" cy="10" r="8" /><path d="M10 6v4M10 14h.01" />
             </svg>
           </div>
           <div className="flex flex-col gap-1">
             <p className="font-semibold text-surface-900 dark:text-white">Failed to load stocks</p>
             <p className="text-sm text-surface-500">Could not reach the server. Check your connection and try again.</p>
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="text-xs font-medium text-brand-cyan hover:text-brand-blue transition-colors px-4 py-2 rounded-lg bg-brand-cyan/8 border border-brand-cyan/20 hover:bg-brand-blue/8 hover:border-brand-blue/20"
-          >
+          <button onClick={() => window.location.reload()}
+            className="text-xs font-medium text-brand-cyan hover:text-brand-blue transition-colors px-4 py-2 rounded-lg bg-brand-cyan/8 border border-brand-cyan/20">
             Retry
           </button>
         </div>
@@ -157,7 +137,6 @@ export default function StocksPage() {
     )
   }
 
-  // ── Main UI ────────────────────────────────
   return (
     <div className="flex flex-col gap-8 dashboard-container-wide">
 
@@ -166,12 +145,8 @@ export default function StocksPage() {
         <div className="relative max-w-3xl">
           <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-[200px] sm:w-[400px] h-[120px] bg-brand-blue/10 blur-[100px] pointer-events-none" />
           <div className="relative">
-            <span className="hero-entry-1 block text-xs font-semibold text-brand-cyan uppercase tracking-widest">
-              AI stock signals
-            </span>
-            <h1 className="hero-entry-2 font-display text-3xl sm:text-4xl font-bold text-surface-900 dark:text-white tracking-tight leading-[1.05] mt-2">
-              NSE · BSE Stocks
-            </h1>
+            <span className="hero-entry-1 block text-xs font-semibold text-brand-cyan uppercase tracking-widest">AI stock signals</span>
+            <h1 className="hero-entry-2 font-display text-3xl sm:text-4xl font-bold text-surface-900 dark:text-white tracking-tight leading-[1.05] mt-2">NSE · BSE Stocks</h1>
             <p className="hero-entry-3 text-sm sm:text-base text-surface-400 mt-3 leading-relaxed">
               Browse{' '}
               {isFetching ? (
@@ -187,8 +162,6 @@ export default function StocksPage() {
 
       {/* ── Controls ── */}
       <div className="hero-entry-4 flex flex-col gap-2">
-
-        {/* Row 1: search + view toggle + count */}
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center p-3 rounded-xl bg-surface-900/60 border border-surface-700/60 backdrop-blur-sm">
           <div className="flex-1 max-w-sm">
             <SearchInput
@@ -199,7 +172,6 @@ export default function StocksPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:ml-auto sm:pl-2 sm:border-l sm:border-surface-800">
-            {/* Filter toggle — mobile */}
             <button
               onClick={() => setShowFilters(v => !v)}
               aria-label="Toggle filters"
@@ -222,7 +194,6 @@ export default function StocksPage() {
               )}
             </button>
 
-            {/* View toggle */}
             <div className="flex items-center gap-0.5 p-1 bg-surface-800/60 border border-surface-700 rounded-lg">
               {(['grid', 'list'] as const).map((v) => (
                 <button
@@ -231,9 +202,7 @@ export default function StocksPage() {
                   aria-label={`${v} view`}
                   className={cn(
                     'w-9 h-9 flex items-center justify-center rounded-md transition-all active:scale-90',
-                    view === v
-                      ? 'bg-surface-700 text-white shadow-sm'
-                      : 'text-surface-500 hover:text-surface-300 hover:bg-surface-800/50'
+                    view === v ? 'bg-surface-700 text-white shadow-sm' : 'text-surface-500 hover:text-surface-300 hover:bg-surface-800/50'
                   )}
                 >
                   {v === 'grid' ? (
@@ -256,11 +225,8 @@ export default function StocksPage() {
           </div>
         </div>
 
-        {/* Row 2: sector + sort + clear — collapsible */}
         {showFilters && (
           <div className="flex flex-wrap gap-2 items-center p-3 rounded-xl bg-surface-900/40 border border-surface-700/40 animate-fade-in">
-
-            {/* Sector select */}
             <div className="flex flex-col gap-1 min-w-0">
               <label className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest px-1">Sector</label>
               <select
@@ -275,13 +241,10 @@ export default function StocksPage() {
                 style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5l3 3 3-3' stroke='%236b7280' stroke-width='1.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}
               >
                 <option value="">All sectors</option>
-                {AVAILABLE_SECTORS.map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
+                {AVAILABLE_SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
 
-            {/* Sort select */}
             <div className="flex flex-col gap-1 min-w-0">
               <label className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest px-1">Sort by</label>
               <select
@@ -302,21 +265,15 @@ export default function StocksPage() {
               </select>
             </div>
 
-            {/* Clear — only when any filter is active */}
             {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="self-end h-9 px-3 rounded-lg text-xs font-medium text-surface-400 hover:text-rose-400 border border-surface-700 hover:border-rose-400/30 transition-all duration-150"
-              >
+              <button onClick={clearFilters}
+                className="self-end h-9 px-3 rounded-lg text-xs font-medium text-surface-400 hover:text-rose-400 border border-surface-700 hover:border-rose-400/30 transition-all duration-150">
                 Clear all
               </button>
             )}
 
-            {/* Sector note */}
             {sector && (
-              <p className="self-end text-[10px] text-surface-600 ml-auto">
-                Sector data for ~75 featured stocks
-              </p>
+              <p className="self-end text-[10px] text-surface-600 ml-auto">Sector data for ~75 featured stocks</p>
             )}
           </div>
         )}
@@ -328,8 +285,7 @@ export default function StocksPage() {
           illustration="search"
           icon={
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <circle cx="9.5" cy="9.5" r="7" />
-              <path d="M14.5 14.5l4.5 4.5" />
+              <circle cx="9.5" cy="9.5" r="7" /><path d="M14.5 14.5l4.5 4.5" />
             </svg>
           }
           title={sector ? `No stocks in "${sector}"` : `No stocks match "${search}"`}
@@ -339,24 +295,24 @@ export default function StocksPage() {
               : 'Try the full ticker symbol — RELIANCE, TCS, INFY — or the company name.'
           }
           action={
-            <button
-              onClick={clearFilters}
-              className="text-xs font-medium text-brand-cyan hover:text-brand-blue transition-colors px-4 py-2 rounded-lg bg-brand-cyan/8 border border-brand-cyan/20 hover:bg-brand-blue/8 hover:border-brand-blue/20"
-            >
+            <button onClick={clearFilters}
+              className="text-xs font-medium text-brand-cyan hover:text-brand-blue transition-colors px-4 py-2 rounded-lg bg-brand-cyan/8 border border-brand-cyan/20">
               Clear filters
             </button>
           }
         />
       ) : view === 'grid' ? (
-        <div className="relative">
-          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-surface-900/20 to-transparent" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 xl:gap-6">
-            {filtered.map((stock, i) => (
-              <div key={stock.symbol} className="animate-fade-in" style={{ animationDelay: `${i * 40}ms`, animationFillMode: 'both' }}>
-                <StockListCard symbol={stock.symbol} name={stock.name} sector={stock.sector} />
-              </div>
-            ))}
-          </div>
+        // PERF: No staggered animations — removed animationDelay * i
+        // was causing 9.6s animation queue on mobile (240 * 40ms)
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 xl:gap-6">
+          {filtered.map((stock) => (
+            <StockListCard
+              key={stock.symbol}
+              symbol={stock.symbol}
+              name={stock.name}
+              sector={stock.sector}
+            />
+          ))}
         </div>
       ) : (
         <div className="card p-0 overflow-hidden">
@@ -367,11 +323,15 @@ export default function StocksPage() {
             <span className="w-4" />
           </div>
           {filtered.map((stock) => (
-            <StockListRow key={stock.symbol} symbol={stock.symbol} name={stock.name} sector={stock.sector} />
+            <StockListRow
+              key={stock.symbol}
+              symbol={stock.symbol}
+              name={stock.name}
+              sector={stock.sector}
+            />
           ))}
         </div>
       )}
-
     </div>
   )
 }
