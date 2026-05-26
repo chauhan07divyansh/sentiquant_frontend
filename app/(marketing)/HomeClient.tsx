@@ -152,159 +152,141 @@ function FloatingMockup() {
 function StockAnalysisShowcase() {
   return (
     <div className="relative w-full">
-      {/* Annotation cards + screen */}
-      <div className="relative flex items-start justify-center" style={{ minHeight: 540 }}>
+      <style>{`
+        @keyframes sq-dash{to{stroke-dashoffset:-24}}
+        @keyframes sq-fadeup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .sq-ann{animation:sq-fadeup .5s ease both}
+        .sq-ann:nth-child(2){animation-delay:.15s}
+        .sq-ann:nth-child(3){animation-delay:.3s}
+        .sq-ann:nth-child(4){animation-delay:.45s}
+        .sq-dash{stroke-dasharray:6 4;animation:sq-dash 1.2s linear infinite}
+      `}</style>
 
-        {/* SVG connector lines */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+      <div className="relative" style={{ height: 500 }}>
+        {/* Animated SVG connectors */}
+        <svg width="100%" height="500" viewBox="0 0 680 500" style={{ position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:5 }}>
           <defs>
-            <marker id="arr1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <marker id="sq1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M1 1L9 5L1 9" fill="none" stroke="#3b82f6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </marker>
-            <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" fill="none" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <marker id="sq2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M1 1L9 5L1 9" fill="none" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </marker>
-            <marker id="arr3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" fill="none" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <marker id="sq3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M1 1L9 5L1 9" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </marker>
-            <marker id="arr4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" fill="none" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <marker id="sq4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M1 1L9 5L1 9" fill="none" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </marker>
           </defs>
-          {/* Score → screen */}
-          <line x1="22%" y1="18%" x2="34%" y2="24%" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4 3" markerEnd="url(#arr1)"/>
-          {/* Signal → screen */}
-          <line x1="22%" y1="55%" x2="34%" y2="48%" stroke="#34d399" strokeWidth="1" strokeDasharray="4 3" markerEnd="url(#arr2)"/>
-          {/* Entry → screen */}
-          <line x1="78%" y1="28%" x2="66%" y2="38%" stroke="#60a5fa" strokeWidth="1" strokeDasharray="4 3" markerEnd="url(#arr3)"/>
-          {/* Stop → screen */}
-          <line x1="78%" y1="62%" x2="66%" y2="56%" stroke="#f87171" strokeWidth="1" strokeDasharray="4 3" markerEnd="url(#arr4)"/>
+          <path className="sq-dash" d="M 178 130 C 230 130 250 175 280 195" fill="none" stroke="#3b82f6" strokeWidth="1.5" markerEnd="url(#sq1)"/>
+          <path className="sq-dash" d="M 178 340 C 230 330 252 295 280 285" fill="none" stroke="#10b981" strokeWidth="1.5" markerEnd="url(#sq2)" style={{ animationDelay:'0.4s' }}/>
+          <path className="sq-dash" d="M 502 150 C 455 150 435 195 412 215" fill="none" stroke="#60a5fa" strokeWidth="1.5" markerEnd="url(#sq3)" style={{ animationDelay:'0.2s' }}/>
+          <path className="sq-dash" d="M 502 340 C 455 335 432 305 412 292" fill="none" stroke="#f87171" strokeWidth="1.5" markerEnd="url(#sq4)" style={{ animationDelay:'0.6s' }}/>
         </svg>
 
-        {/* Left cards */}
-        <div className="absolute left-0 top-8 flex flex-col gap-6" style={{ width: '22%', zIndex: 10 }}>
-          {/* AI Score card */}
-          <div className="rounded-xl border border-surface-700 bg-surface-900 p-3.5 shadow-lg">
-            <p className="text-[9px] font-semibold text-surface-500 uppercase tracking-widest mb-2">AI Score</p>
-            <p className="font-mono font-bold text-3xl text-emerald-400 leading-none">88.00</p>
-            <div className="h-1.5 bg-surface-800 rounded-full mt-2 mb-2 overflow-hidden">
-              <div className="h-full rounded-full bg-gradient-to-r from-brand-blue to-emerald-400" style={{ width: '88%' }} />
-            </div>
-            <span className="inline-block text-[9px] font-semibold text-emerald-400 border border-emerald-400/25 rounded px-1.5 py-0.5">A+ Excellent</span>
+        {/* Left annotation cards */}
+        <div className="sq-ann absolute left-0 top-20 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(59,130,246,.35)', zIndex:10 }}>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">AI Score</p>
+          <p className="font-mono font-bold text-4xl leading-none" style={{ color:'#10b981' }}>88.00</p>
+          <div className="h-1 rounded-full mt-2 mb-2 overflow-hidden" style={{ background:'rgba(255,255,255,.08)' }}>
+            <div className="h-full rounded-full" style={{ width:'88%', background:'linear-gradient(90deg,#3b82f6,#10b981)' }}/>
           </div>
-
-          {/* Signal card */}
-          <div className="rounded-xl border border-surface-700 bg-surface-900 p-3.5 shadow-lg">
-            <p className="text-[9px] font-semibold text-surface-500 uppercase tracking-widest mb-2">Signal</p>
-            <div className="bg-emerald-400/10 border border-emerald-400/20 rounded-lg py-2.5 text-center mb-2">
-              <span className="font-mono font-bold text-xl text-emerald-400 tracking-wider">BUY</span>
-            </div>
-            <p className="text-[9px] text-surface-500">Swing · 1–4 weeks</p>
-          </div>
+          <span className="text-[11px] font-semibold rounded-md px-2 py-0.5 border" style={{ color:'#10b981', borderColor:'rgba(16,185,129,.3)' }}>A+ Excellent</span>
         </div>
 
-        {/* Center screen */}
-        <div className="relative z-10 w-64 xl:w-72 rounded-2xl overflow-hidden border border-surface-700 bg-[#070d1a] shadow-[0_32px_80px_rgba(0,0,0,0.6)]" style={{ marginTop: 30 }}>
-          {/* Browser bar */}
-          <div className="flex items-center gap-1.5 px-3 py-2 bg-surface-900 border-b border-surface-800">
-            <div className="w-2.5 h-2.5 rounded-full bg-rose-500/70" />
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-400/70" />
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/70" />
-            <span className="ml-2 text-[9px] text-surface-600 font-mono truncate">sentiquant.org/stocks/RELIANCE</span>
+        <div className="sq-ann absolute left-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(16,185,129,.3)', top:280, zIndex:10 }}>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Signal</p>
+          <div className="rounded-lg py-3 text-center mb-2 border" style={{ background:'rgba(16,185,129,.1)', borderColor:'rgba(16,185,129,.22)' }}>
+            <span className="font-mono font-bold text-2xl tracking-widest" style={{ color:'#10b981' }}>BUY</span>
+          </div>
+          <p className="text-[11px] text-slate-500">Swing · 1–4 weeks</p>
+        </div>
+
+        {/* Center screen mockup */}
+        <div className="absolute z-10 rounded-2xl overflow-hidden border" style={{ left:'50%', transform:'translateX(-50%)', top:20, width:252, background:'#070d1a', borderColor:'rgba(255,255,255,.1)', boxShadow:'0 24px 60px rgba(0,0,0,.7)' }}>
+          <div className="flex items-center gap-1.5 px-3 py-2 border-b" style={{ background:'#0d1525', borderColor:'rgba(255,255,255,.06)' }}>
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background:'#ef4444', opacity:.8 }}/>
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background:'#f59e0b', opacity:.8 }}/>
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background:'#10b981', opacity:.8 }}/>
+            <span className="font-mono ml-2 text-slate-600 truncate" style={{ fontSize:9 }}>sentiquant.org/stocks/RELIANCE</span>
           </div>
           <div className="p-4 flex flex-col gap-3">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
                 <p className="font-mono font-bold text-sm text-white">RELIANCE</p>
-                <p className="text-[9px] text-surface-500">Reliance Industries</p>
+                <p className="text-slate-500" style={{ fontSize:10 }}>Reliance Industries</p>
               </div>
-              <span className="text-[9px] font-semibold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">● LIVE</span>
+              <span className="font-semibold rounded-full px-2 py-0.5 border" style={{ fontSize:9, color:'#10b981', background:'rgba(16,185,129,.12)', borderColor:'rgba(16,185,129,.2)' }}>● LIVE</span>
             </div>
-            {/* Price */}
-            <div className="border-b border-surface-800 pb-3">
-              <p className="text-[9px] text-surface-600 uppercase tracking-wider mb-1">Current Price</p>
+            <div className="border-b pb-3" style={{ borderColor:'rgba(255,255,255,.06)' }}>
+              <p className="uppercase tracking-wider text-slate-600 mb-1" style={{ fontSize:9 }}>Current Price</p>
               <div className="flex items-baseline gap-2">
                 <span className="font-mono font-bold text-2xl text-white">₹2,843</span>
-                <span className="text-[10px] text-emerald-400">+2.4%</span>
+                <span className="font-medium" style={{ fontSize:11, color:'#10b981' }}>+2.4%</span>
               </div>
             </div>
-            {/* Score */}
-            <div className="border-b border-surface-800 pb-3">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-[9px] text-surface-600 uppercase tracking-wider">AI Score</p>
-                <span className="text-[9px] text-emerald-400 font-semibold">Strong</span>
+            <div className="border-b pb-3" style={{ borderColor:'rgba(255,255,255,.06)' }}>
+              <div className="flex justify-between items-center mb-1">
+                <p className="uppercase tracking-wider text-slate-600" style={{ fontSize:9 }}>AI Score</p>
+                <span className="font-semibold" style={{ fontSize:9, color:'#10b981' }}>Strong</span>
               </div>
-              <p className="font-mono font-bold text-xl text-emerald-400 leading-none mb-1.5">88.00<span className="text-[10px] text-surface-500 font-normal">/100</span></p>
-              <div className="h-1 bg-surface-800 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-brand-blue to-emerald-400 rounded-full" style={{ width: '88%' }} />
+              <p className="font-mono font-bold leading-none mb-1.5" style={{ fontSize:20, color:'#10b981' }}>88.00<span className="text-slate-600" style={{ fontSize:11, fontWeight:400 }}>/100</span></p>
+              <div className="rounded-full overflow-hidden mb-1.5" style={{ height:3, background:'rgba(255,255,255,.06)' }}>
+                <div className="h-full rounded-full" style={{ width:'88%', background:'linear-gradient(90deg,#3b82f6,#10b981)' }}/>
               </div>
-              <span className="inline-block mt-1.5 text-[9px] text-emerald-400 border border-emerald-400/20 rounded px-1.5 py-0.5">A+ (EXCELLENT)</span>
+              <span className="rounded border px-1.5 py-0.5" style={{ fontSize:9, color:'#10b981', borderColor:'rgba(16,185,129,.22)' }}>A+ (EXCELLENT)</span>
             </div>
-            {/* Signal */}
-            <div className="border-b border-surface-800 pb-3">
-              <div className="bg-emerald-400/10 border border-emerald-400/20 rounded-lg py-2.5 text-center">
-                <span className="font-mono font-bold text-lg text-emerald-400 tracking-wider">BUY</span>
-              </div>
-              <p className="text-[9px] text-surface-500 mt-1.5 leading-relaxed">Solid entry for swing trading. Enter on dips.</p>
+            <div className="rounded-lg py-3 text-center border" style={{ background:'rgba(16,185,129,.1)', borderColor:'rgba(16,185,129,.22)' }}>
+              <span className="font-mono font-bold tracking-widest" style={{ fontSize:18, color:'#10b981' }}>BUY</span>
             </div>
-            {/* Levels */}
             <div className="grid grid-cols-3 gap-1.5">
-              <div className="bg-brand-blue/8 rounded-lg p-2 text-center">
-                <p className="text-[8px] text-surface-600 uppercase mb-1">Entry</p>
-                <p className="font-mono font-bold text-[10px] text-blue-400">₹2,843</p>
-              </div>
-              <div className="bg-emerald-400/8 rounded-lg p-2 text-center">
-                <p className="text-[8px] text-surface-600 uppercase mb-1">T1</p>
-                <p className="font-mono font-bold text-[10px] text-emerald-400">₹3,180</p>
-              </div>
-              <div className="bg-rose-400/8 rounded-lg p-2 text-center">
-                <p className="text-[8px] text-surface-600 uppercase mb-1">Stop</p>
-                <p className="font-mono font-bold text-[10px] text-rose-400">₹2,640</p>
-              </div>
+              {[
+                { label:'Entry', val:'₹2,843', c:'#60a5fa', bg:'rgba(59,130,246,.08)' },
+                { label:'T1',    val:'₹3,180', c:'#10b981', bg:'rgba(16,185,129,.08)' },
+                { label:'Stop',  val:'₹2,640', c:'#f87171', bg:'rgba(248,113,113,.08)' },
+              ].map(x => (
+                <div key={x.label} className="rounded-lg p-2 text-center" style={{ background:x.bg }}>
+                  <p className="uppercase text-slate-600 mb-1" style={{ fontSize:8 }}>{x.label}</p>
+                  <p className="font-mono font-bold" style={{ fontSize:10, color:x.c }}>{x.val}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Right cards */}
-        <div className="absolute right-0 top-16 flex flex-col gap-6" style={{ width: '22%', zIndex: 10 }}>
-          {/* Entry card */}
-          <div className="rounded-xl border border-surface-700 bg-surface-900 p-3.5 shadow-lg">
-            <p className="text-[9px] font-semibold text-surface-500 uppercase tracking-widest mb-2">Entry zone</p>
-            <p className="font-mono font-bold text-xl text-white">₹2,843</p>
-            <p className="text-[9px] text-surface-500 mt-1">+0.0% vs current</p>
-            <p className="text-[9px] text-surface-500 mt-1 leading-relaxed">Watch for dips before entering</p>
-          </div>
-
-          {/* Stop card */}
-          <div className="rounded-xl border border-surface-700 bg-surface-900 p-3.5 shadow-lg">
-            <p className="text-[9px] font-semibold text-surface-500 uppercase tracking-widest mb-2">Stop loss</p>
-            <p className="font-mono font-bold text-xl text-rose-400">₹2,640</p>
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <div className="w-2 h-2 rounded-full bg-rose-400/60" />
-              <p className="text-[9px] text-surface-500">−7.1% max loss</p>
-            </div>
-          </div>
+        {/* Right annotation cards */}
+        <div className="sq-ann absolute right-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(96,165,250,.3)', top:90, zIndex:10 }}>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Entry zone</p>
+          <p className="font-mono font-bold text-2xl text-white">₹2,843</p>
+          <p className="text-slate-500 mt-1" style={{ fontSize:11 }}>+0.0% vs current</p>
+          <p className="text-slate-400 mt-1.5 leading-relaxed" style={{ fontSize:11 }}>Watch for dips before entering</p>
         </div>
 
+        <div className="sq-ann absolute right-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(248,113,113,.3)', top:285, zIndex:10 }}>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Stop loss</p>
+          <p className="font-mono font-bold text-2xl" style={{ color:'#f87171' }}>₹2,640</p>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <div className="w-2 h-2 rounded-full" style={{ background:'rgba(248,113,113,.7)' }}/>
+            <p className="text-slate-400" style={{ fontSize:11 }}>−7.1% max loss</p>
+          </div>
+        </div>
       </div>
 
       {/* Bottom pill */}
       <div className="flex justify-center mt-6">
-        <div className="inline-flex items-center gap-5 border border-surface-700 bg-surface-900 rounded-full px-6 py-2.5">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span className="text-xs text-surface-400">Upside <span className="text-white font-mono font-medium ml-1">+11.8%</span></span>
-          </div>
-          <div className="w-px h-4 bg-surface-700" />
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-            <span className="text-xs text-surface-400">Downside <span className="text-white font-mono font-medium ml-1">−7.1%</span></span>
-          </div>
-          <div className="w-px h-4 bg-surface-700" />
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-surface-400">Risk:Reward <span className="text-amber-400 font-mono font-medium ml-1">1:1.66</span></span>
-          </div>
+        <div className="inline-flex items-center rounded-full overflow-hidden border" style={{ background:'#0f172a', borderColor:'rgba(255,255,255,.08)' }}>
+          {[
+            { dot:'#10b981', label:'Upside', val:'+11.8%', valC:'#f1f5f9' },
+            { dot:'#f87171', label:'Downside', val:'−7.1%', valC:'#f1f5f9' },
+            { dot:null, label:'Risk:Reward', val:'1 : 1.66', valC:'#fbbf24' },
+          ].map((x, i) => (
+            <div key={x.label} className="flex items-center gap-2 px-5 py-2.5" style={{ borderRight: i < 2 ? '1px solid rgba(255,255,255,.06)' : undefined }}>
+              {x.dot && <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background:x.dot }}/>}
+              <span className="text-xs text-slate-500">{x.label}</span>
+              <span className="font-mono text-sm font-medium" style={{ color:x.valC }}>{x.val}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -314,147 +296,141 @@ function StockAnalysisShowcase() {
 // ─────────────────────────────────────────────
 //  STRIPE-STYLE SHOWCASE: Portfolio
 // ─────────────────────────────────────────────
+const PORT_ROWS = [
+  { sym:'IOC',       co:'Indian Oil',   alloc:'10.0%', stop:'₹136', t1:'₹149' },
+  { sym:'AMBUJACEM', co:'Ambuja',       alloc:'9.8%',  stop:'₹430', t1:'₹465' },
+  { sym:'BPCL',      co:'Bharat Petro', alloc:'9.7%',  stop:'₹290', t1:'₹318' },
+  { sym:'JUSTDIAL',  co:'Just Dial',    alloc:'9.6%',  stop:'₹514', t1:'₹550' },
+  { sym:'AUBANK',    co:'AU Small',     alloc:'9.1%',  stop:'₹974', t1:'₹1,049' },
+] as const
+
+const ALLOC_COLORS = ['#3b82f6','#06b6d4','#10b981','#8b5cf6','#f59e0b','#f87171','#ec4899','#14b8a6','#84cc16','#334155']
+
 function PortfolioShowcase() {
   return (
     <div className="relative w-full">
-      <div className="relative flex items-start justify-center" style={{ minHeight: 560 }}>
-
-        {/* SVG connectors */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+      <div className="relative" style={{ height: 520 }}>
+        {/* Animated SVG connectors */}
+        <svg width="100%" height="520" viewBox="0 0 680 520" style={{ position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:5 }}>
           <defs>
-            <marker id="pa1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" fill="none" stroke="#06b6d4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <marker id="pq1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M1 1L9 5L1 9" fill="none" stroke="#06b6d4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </marker>
-            <marker id="pa2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" fill="none" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <marker id="pq2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M1 1L9 5L1 9" fill="none" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </marker>
-            <marker id="pa3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" fill="none" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <marker id="pq3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M1 1L9 5L1 9" fill="none" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </marker>
-            <marker id="pa4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-              <path d="M2 1L8 5L2 9" fill="none" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <marker id="pq4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M1 1L9 5L1 9" fill="none" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </marker>
           </defs>
-          <line x1="22%" y1="20%" x2="34%" y2="26%" stroke="#06b6d4" strokeWidth="1" strokeDasharray="4 3" markerEnd="url(#pa1)"/>
-          <line x1="22%" y1="58%" x2="34%" y2="50%" stroke="#34d399" strokeWidth="1" strokeDasharray="4 3" markerEnd="url(#pa2)"/>
-          <line x1="78%" y1="25%" x2="66%" y2="34%" stroke="#f87171" strokeWidth="1" strokeDasharray="4 3" markerEnd="url(#pa3)"/>
-          <line x1="78%" y1="62%" x2="66%" y2="55%" stroke="#34d399" strokeWidth="1" strokeDasharray="4 3" markerEnd="url(#pa4)"/>
+          <path className="sq-dash" d="M 178 150 C 230 150 252 185 280 205" fill="none" stroke="#06b6d4" strokeWidth="1.5" markerEnd="url(#pq1)"/>
+          <path className="sq-dash" d="M 178 360 C 232 348 252 310 280 298" fill="none" stroke="#10b981" strokeWidth="1.5" markerEnd="url(#pq2)" style={{ animationDelay:'0.4s' }}/>
+          <path className="sq-dash" d="M 502 168 C 455 168 434 205 412 222" fill="none" stroke="#f87171" strokeWidth="1.5" markerEnd="url(#pq3)" style={{ animationDelay:'0.2s' }}/>
+          <path className="sq-dash" d="M 502 358 C 454 345 432 315 412 300" fill="none" stroke="#10b981" strokeWidth="1.5" markerEnd="url(#pq4)" style={{ animationDelay:'0.6s' }}/>
         </svg>
 
-        {/* Left cards */}
-        <div className="absolute left-0 top-8 flex flex-col gap-6" style={{ width: '22%', zIndex: 10 }}>
-          <div className="rounded-xl border border-surface-700 bg-surface-900 p-3.5 shadow-lg">
-            <p className="text-[9px] font-semibold text-surface-500 uppercase tracking-widest mb-2">Deployed</p>
-            <p className="font-mono font-bold text-2xl text-brand-cyan leading-none">₹97.3K</p>
-            <p className="text-[9px] text-surface-500 mt-1">of ₹1L budget · 97.3%</p>
-            <div className="h-1.5 bg-surface-800 rounded-full mt-2 overflow-hidden">
-              <div className="h-full bg-brand-cyan rounded-full" style={{ width: '97%' }} />
-            </div>
+        {/* Left annotation cards */}
+        <div className="sq-ann absolute left-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(6,182,212,.35)', top:90, zIndex:10 }}>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Deployed</p>
+          <p className="font-mono font-bold leading-none" style={{ fontSize:28, color:'#06b6d4' }}>₹97.3K</p>
+          <p className="text-slate-500 mt-1" style={{ fontSize:11 }}>of ₹1L · 97.3%</p>
+          <div className="rounded-full overflow-hidden mt-2" style={{ height:3, background:'rgba(255,255,255,.08)' }}>
+            <div className="h-full rounded-full" style={{ width:'97%', background:'#06b6d4' }}/>
           </div>
-          <div className="rounded-xl border border-surface-700 bg-surface-900 p-3.5 shadow-lg">
-            <p className="text-[9px] font-semibold text-surface-500 uppercase tracking-widest mb-2">Avg AI score</p>
-            <p className="font-mono font-bold text-3xl text-emerald-400 leading-none">94<span className="text-sm text-surface-500 font-normal">/100</span></p>
-            <span className="inline-block mt-2 text-[9px] text-emerald-400 border border-emerald-400/20 rounded px-1.5 py-0.5">10 positions</span>
-          </div>
+        </div>
+
+        <div className="sq-ann absolute left-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(16,185,129,.3)', top:295, zIndex:10 }}>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Avg AI score</p>
+          <p className="font-mono font-bold leading-none" style={{ fontSize:32, color:'#10b981' }}>94<span className="text-slate-600" style={{ fontSize:14, fontWeight:400 }}>/100</span></p>
+          <span className="inline-block rounded border px-2 py-0.5 mt-2" style={{ fontSize:11, color:'#10b981', borderColor:'rgba(16,185,129,.22)' }}>10 positions</span>
         </div>
 
         {/* Center screen */}
-        <div className="relative z-10 w-64 xl:w-72 rounded-2xl overflow-hidden border border-surface-700 bg-[#070d1a] shadow-[0_32px_80px_rgba(0,0,0,0.6)]" style={{ marginTop: 30 }}>
-          <div className="flex items-center gap-1.5 px-3 py-2 bg-surface-900 border-b border-surface-800">
-            <div className="w-2.5 h-2.5 rounded-full bg-rose-500/70" />
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-400/70" />
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/70" />
-            <span className="ml-2 text-[9px] text-surface-600 font-mono truncate">sentiquant.org/portfolio</span>
+        <div className="absolute z-10 rounded-2xl overflow-hidden border" style={{ left:'50%', transform:'translateX(-50%)', top:10, width:252, background:'#070d1a', borderColor:'rgba(255,255,255,.1)', boxShadow:'0 24px 60px rgba(0,0,0,.7)' }}>
+          <div className="flex items-center gap-1.5 px-3 py-2 border-b" style={{ background:'#0d1525', borderColor:'rgba(255,255,255,.06)' }}>
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background:'#ef4444', opacity:.8 }}/>
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background:'#f59e0b', opacity:.8 }}/>
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background:'#10b981', opacity:.8 }}/>
+            <span className="font-mono ml-2 text-slate-600 truncate" style={{ fontSize:9 }}>sentiquant.org/portfolio</span>
           </div>
           <div className="p-4 flex flex-col gap-3">
-            {/* Summary */}
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-brand-cyan/8 rounded-lg p-2.5">
-                <p className="text-[8px] text-surface-600 uppercase tracking-wider mb-1">Allocated</p>
-                <p className="font-mono font-bold text-sm text-brand-cyan">₹97.3K</p>
-                <p className="text-[8px] text-surface-500">97.3% deployed</p>
+              <div className="rounded-lg p-2.5" style={{ background:'rgba(6,182,212,.08)' }}>
+                <p className="uppercase tracking-wider text-slate-600 mb-1" style={{ fontSize:8 }}>Allocated</p>
+                <p className="font-mono font-bold text-sm" style={{ color:'#06b6d4' }}>₹97.3K</p>
+                <p className="text-slate-500" style={{ fontSize:8 }}>97.3% deployed</p>
               </div>
-              <div className="bg-emerald-400/8 rounded-lg p-2.5">
-                <p className="text-[8px] text-surface-600 uppercase tracking-wider mb-1">Avg Score</p>
-                <p className="font-mono font-bold text-sm text-emerald-400">94/100</p>
-                <p className="text-[8px] text-surface-500">10 positions</p>
+              <div className="rounded-lg p-2.5" style={{ background:'rgba(16,185,129,.08)' }}>
+                <p className="uppercase tracking-wider text-slate-600 mb-1" style={{ fontSize:8 }}>Avg score</p>
+                <p className="font-mono font-bold text-sm" style={{ color:'#10b981' }}>94/100</p>
+                <p className="text-slate-500" style={{ fontSize:8 }}>10 positions</p>
               </div>
             </div>
-            {/* Allocation bar */}
             <div>
-              <p className="text-[8px] text-surface-600 uppercase tracking-wider mb-1.5">Allocation</p>
-              <div className="flex h-2 rounded-full overflow-hidden gap-px">
-                {['#3b82f6','#06b6d4','#34d399','#a78bfa','#f59e0b','#f87171','#ec4899','#14b8a6','#84cc16','#374151'].map((c, i) => (
-                  <div key={i} style={{ flex: 2 - i * 0.1, background: c }} />
+              <p className="uppercase tracking-wider text-slate-600 mb-1.5" style={{ fontSize:8 }}>Allocation</p>
+              <div className="flex rounded-full overflow-hidden gap-px" style={{ height:6 }}>
+                {ALLOC_COLORS.map((c, i) => (
+                  <div key={i} style={{ flex: 2 - i * 0.1, background: c }}/>
                 ))}
               </div>
             </div>
-            {/* Table */}
             <div>
-              <div className="grid grid-cols-4 gap-1 pb-1.5 border-b border-surface-800 mb-1.5">
-                {['Stock','Alloc','Stop','T1'].map(h => (
-                  <p key={h} className="text-[8px] text-surface-600 uppercase tracking-wider text-right first:text-left">{h}</p>
+              <div className="grid grid-cols-4 gap-1 pb-1.5 border-b mb-1.5" style={{ borderColor:'rgba(255,255,255,.06)' }}>
+                {['Stock','Alloc','Stop','T1'].map((h,i) => (
+                  <p key={h} className="uppercase tracking-wider text-slate-600" style={{ fontSize:8, textAlign: i > 0 ? 'right' : 'left' }}>{h}</p>
                 ))}
               </div>
-              {[
-                { sym:'IOC',    co:'Indian Oil',   alloc:'10.0%', stop:'₹136', t1:'₹149' },
-                { sym:'AMBUJACEM', co:'Ambuja',   alloc:'9.8%',  stop:'₹430', t1:'₹465' },
-                { sym:'BPCL',   co:'Bharat Petro', alloc:'9.7%',  stop:'₹290', t1:'₹318' },
-                { sym:'JUSTDIAL',co:'Just Dial',   alloc:'9.6%',  stop:'₹514', t1:'₹550' },
-                { sym:'AUBANK', co:'AU Small',     alloc:'9.1%',  stop:'₹974', t1:'₹1,049' },
-              ].map(r => (
-                <div key={r.sym} className="grid grid-cols-4 gap-1 py-1.5 border-b border-surface-800/50 last:border-0">
+              {PORT_ROWS.map(r => (
+                <div key={r.sym} className="grid grid-cols-4 gap-1 py-1.5 border-b last:border-0" style={{ borderColor:'rgba(255,255,255,.04)' }}>
                   <div>
-                    <p className="font-mono font-bold text-[9px] text-white">{r.sym}</p>
-                    <p className="text-[8px] text-surface-600">{r.co}</p>
+                    <p className="font-mono font-bold text-white" style={{ fontSize:10 }}>{r.sym}</p>
+                    <p className="text-slate-600" style={{ fontSize:8 }}>{r.co}</p>
                   </div>
-                  <p className="text-[9px] text-brand-cyan font-mono text-right">{r.alloc}</p>
-                  <p className="text-[9px] text-rose-400 font-mono text-right">{r.stop}</p>
-                  <p className="text-[9px] text-emerald-400 font-mono text-right">{r.t1}</p>
+                  <p className="font-mono" style={{ fontSize:10, color:'#06b6d4', textAlign:'right' }}>{r.alloc}</p>
+                  <p className="font-mono" style={{ fontSize:10, color:'#f87171', textAlign:'right' }}>{r.stop}</p>
+                  <p className="font-mono" style={{ fontSize:10, color:'#10b981', textAlign:'right' }}>{r.t1}</p>
                 </div>
               ))}
-              <p className="text-[8px] text-surface-600 text-center pt-2">+ 5 more positions</p>
+              <p className="text-center text-slate-600 mt-2" style={{ fontSize:9 }}>+ 5 more positions</p>
             </div>
           </div>
         </div>
 
-        {/* Right cards */}
-        <div className="absolute right-0 top-16 flex flex-col gap-6" style={{ width: '22%', zIndex: 10 }}>
-          <div className="rounded-xl border border-surface-700 bg-surface-900 p-3.5 shadow-lg">
-            <p className="text-[9px] font-semibold text-surface-500 uppercase tracking-widest mb-2">Stop loss</p>
-            <p className="font-mono font-bold text-lg text-rose-400 leading-none">Per stock</p>
-            <p className="text-[9px] text-surface-500 mt-2 leading-relaxed">AI-calculated for each position. Limits max loss.</p>
-          </div>
-          <div className="rounded-xl border border-surface-700 bg-surface-900 p-3.5 shadow-lg">
-            <p className="text-[9px] font-semibold text-surface-500 uppercase tracking-widest mb-2">Price targets</p>
-            {[['T1', '₹149'],['T2', '₹158'],['T3', '₹167']].map(([t, v]) => (
-              <div key={t} className="flex items-center justify-between py-1 border-b border-surface-800/50 last:border-0">
-                <span className="text-[9px] text-surface-500">{t} (IOC)</span>
-                <span className="font-mono text-[10px] font-semibold text-emerald-400">{v}</span>
-              </div>
-            ))}
-          </div>
+        {/* Right annotation cards */}
+        <div className="sq-ann absolute right-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(248,113,113,.3)', top:100, zIndex:10 }}>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Stop loss</p>
+          <p className="font-mono font-bold text-2xl" style={{ color:'#f87171' }}>Per stock</p>
+          <p className="text-slate-400 mt-2 leading-relaxed" style={{ fontSize:11 }}>AI-calculated for each. Limits max loss.</p>
         </div>
 
+        <div className="sq-ann absolute right-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(16,185,129,.3)', top:295, zIndex:10 }}>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Targets (IOC)</p>
+          {(['T1','T2','T3'] as const).map((t, i) => (
+            <div key={t} className="flex justify-between items-center py-1.5 border-b last:border-0" style={{ borderColor:'rgba(255,255,255,.05)' }}>
+              <span className="text-slate-500" style={{ fontSize:11 }}>{t}</span>
+              <span className="font-mono font-semibold" style={{ fontSize:13, color:'#10b981' }}>{['₹149','₹158','₹167'][i]}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Bottom pill */}
       <div className="flex justify-center mt-6">
-        <div className="inline-flex items-center gap-5 border border-surface-700 bg-surface-900 rounded-full px-6 py-2.5">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan" />
-            <span className="text-xs text-surface-400">Budget <span className="text-white font-mono ml-1">₹10K–₹10L</span></span>
-          </div>
-          <div className="w-px h-4 bg-surface-700" />
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span className="text-xs text-surface-400">240+ stocks scanned</span>
-          </div>
-          <div className="w-px h-4 bg-surface-700" />
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-            <span className="text-xs text-surface-400">Free to generate</span>
-          </div>
+        <div className="inline-flex items-center rounded-full overflow-hidden border" style={{ background:'#0f172a', borderColor:'rgba(255,255,255,.08)' }}>
+          {[
+            { dot:'#06b6d4', label:'Budget', val:'₹10K–₹10L' },
+            { dot:'#10b981', label:'240+ stocks scanned', val:'' },
+            { dot:'#8b5cf6', label:'Free to generate', val:'' },
+          ].map((x, i) => (
+            <div key={x.label} className="flex items-center gap-2 px-5 py-2.5" style={{ borderRight: i < 2 ? '1px solid rgba(255,255,255,.06)' : undefined }}>
+              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background:x.dot }}/>
+              <span className="text-slate-500 text-xs">{x.label}</span>
+              {x.val && <span className="font-mono font-medium text-sm text-white">{x.val}</span>}
+            </div>
+          ))}
         </div>
       </div>
     </div>
