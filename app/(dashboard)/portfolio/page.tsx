@@ -11,6 +11,7 @@ import { ErrorState } from '@/components/common/DegradedBanner'
 import { validateSwingForm, validatePositionForm, hasErrors } from '@/lib/utils/validators'
 import { formatINR, formatINRCompact } from '@/lib/utils/formatters'
 import { cn } from '@/lib/utils/cn'
+import { track } from '@/lib/analytics'
 import { TIME_PERIOD_OPTIONS, RISK_LABELS } from '@/types/portfolio.types'
 import type { PortfolioJob } from '@/lib/api/portfolio.api'
 import type { RiskAppetite } from '@/types/stock.types'
@@ -131,6 +132,7 @@ function PortfolioResult({ result, type, onReset }: {
   )
 
   const handleDownload = () => {
+    track.portfolioDownloaded(type)
     const lines = [
       'SENTIQUANT AI PORTFOLIO', '═'.repeat(60), '',
       `Strategy: ${type === 'swing' ? 'Swing Trading' : 'Position Trading'}`,
@@ -501,6 +503,7 @@ export default function PortfolioPage() {
   }
 
   async function handleGenerate() {
+    track.portfolioBuildStarted(type, Number(budget), risk ?? 'UNKNOWN')
     setCurrentJob({ status: 'queued', progress: 0, result: null, error: null })
     try {
       let data: PortfolioResponse
@@ -511,6 +514,7 @@ export default function PortfolioPage() {
         data = await positionMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60, onProgress: handleProgress })
         savePositionPortfolio({ type: 'position', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60 }, result: data })
       }
+      track.portfolioBuildCompleted(type, data.portfolio?.length ?? 0, Math.round(data.summary?.average_score ?? 0))
       setResult(data)
       setResultType(type)
       setCurrentJob(null)
