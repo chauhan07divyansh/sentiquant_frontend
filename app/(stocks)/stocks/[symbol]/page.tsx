@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import dynamic        from 'next/dynamic'
 import Link           from 'next/link'
 import { signIn, useSession } from 'next-auth/react'
+import { track } from '@/lib/analytics'
 import { useSwingAnalysis, usePositionAnalysis, useCompareStrategies } from '@/hooks/useQueryHooks'
 import { useQuery } from '@tanstack/react-query'
 import { AnalysisSkeleton } from '@/components/ui/Skeleton'
@@ -66,6 +67,7 @@ function GuestSignupPrompt({ symbol }: { symbol: string }) {
           <button
             onClick={async () => {
               setGoogleLoading(true)
+              track.guestSignupClicked('analysis_overlay', 'google')
               await signIn('google', { callbackUrl: `/stocks/${symbol}` })
             }}
             disabled={googleLoading}
@@ -111,10 +113,25 @@ function GuestSignupPrompt({ symbol }: { symbol: string }) {
 //  GUEST ANALYSIS FETCHER
 // ─────────────────────────────────────────────
 async function fetchGuestAnalysis(symbol: string): Promise<StockAnalysis> {
+  track.guestAnalysisStarted(symbol)
   const res = await fetch(`/api/proxy/api/v1/analyze/guest/${symbol}`)
   const data = await res.json()
-  if (!data.success) throw new Error(data.error ?? 'Analysis failed')
+  if (!data.success) {
+    if (data.error?.includes('Guest limit') || data.code === 'GUEST_LIMIT_EXCEEDED') {
+      track.guestLimitReached(symbol)
+    }
+    throw new Error(data.error ?? 'Analysis failed')
+  }
+  track.guestAnalysisCompleted(symbol)
   return data.data
+}
+
+// Wrapper that fires tracking when prompt is shown
+function GuestSignupPromptTracked({ symbol }: { symbol: string }) {
+  useEffect(() => {
+    track.guestSignupPromptShown(symbol, 'analysis_overlay')
+  }, [symbol])
+  return <GuestSignupPrompt symbol={symbol} />
 }
 
 // ─────────────────────────────────────────────
@@ -163,6 +180,9 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
   // Guest sees only swing tab, others are locked
   const handleTabClick = (tabId: Tab) => {
     if (isGuest && tabId !== 'swing') {
+      track.guestLockedTabClicked(symbol, tabId as 'position' | 'compare')
+      track.guestSignupPromptShown(symbol, 'locked_tab')
+      track.guestSignupClicked('locked_tab', 'google')
       signIn(undefined, { callbackUrl: `/stocks/${symbol}` })
       return
     }
@@ -317,7 +337,7 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mt-2">
                 <button
-                  onClick={() => signIn('google', { callbackUrl: `/stocks/${symbol}` })}
+                  onClick={() => { track.guestSignupClicked('limit_reached', 'google'); signIn('google', { callbackUrl: `/stocks/${symbol}` }) }}
                   className="flex items-center justify-center gap-2.5 py-3 px-6 rounded-xl bg-white text-gray-800 font-semibold text-sm hover:bg-gray-50 transition-all shadow-md"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24">
@@ -347,7 +367,7 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
           isGuest ? (
             <div className="relative overflow-hidden rounded-2xl">
               <AnalysisView analysis={data as StockAnalysis} />
-              <GuestSignupPrompt symbol={symbol} />
+              <GuestSignupPromptTracked symbol={symbol} />
             </div>
           ) : (
             <AnalysisView analysis={data as StockAnalysis} />
