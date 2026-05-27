@@ -8,6 +8,7 @@ import PlanUpgradeModal           from '@/components/common/PlanUpgradeModal'
 import PageViewTracker            from '@/components/analytics/PageViewTracker'
 import { ErrorBoundary }          from '@/components/ErrorBoundary'
 import { GoogleSignInPrompt }     from '@/components/auth/GoogleSignInPrompt'
+import { PHProvider }              from '@/components/analytics/PosthogProvider'
 import './globals.css'
 
 // ─────────────────────────────────────────────
@@ -137,15 +138,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             }),
           }}
         />
-        <ErrorBoundary>
-          <Providers session={session}>
-            <PageViewTracker />
-            <DegradedBanner />
-            <PlanUpgradeModal />
-            <GoogleSignInPrompt />
-            {children}
-          </Providers>
-        </ErrorBoundary>
+        <PHProvider>
+          <ErrorBoundary>
+            <Providers session={session}>
+              <PageViewTracker />
+              <DegradedBanner />
+              <PlanUpgradeModal />
+              <GoogleSignInPrompt />
+              {children}
+            </Providers>
+          </ErrorBoundary>
+        </PHProvider>
       </body>
     </html>
   )
