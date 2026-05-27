@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
+import { track } from '@/lib/analytics'
 import { cn } from '@/lib/utils/cn'
 import { useInView, useCountUp } from '@/lib/animations'
 import { use3DTilt } from '@/lib/use3DTilt'
@@ -53,7 +54,7 @@ const STAGGER = ['', 'delay-75', 'delay-150', 'delay-200', 'delay-300', 'delay-5
 function GoogleSignInButton() {
   return (
     <button
-      onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+      onClick={() => { track.guestSignupClicked('hero_cta', 'google'); signIn('google', { callbackUrl: '/dashboard' }) }}
       className="flex items-center justify-center gap-3 px-6 py-2.5 rounded-xl border border-surface-700 bg-surface-900/80 text-white text-sm font-medium hover:bg-surface-800 hover:border-surface-600 transition-all duration-200 w-full sm:w-auto"
     >
       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
