@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
+import { track } from '@/lib/analytics'
 import { cn } from '@/lib/utils/cn'
 
 export function GoogleSignInPrompt() {
@@ -13,7 +14,10 @@ export function GoogleSignInPrompt() {
   useEffect(() => {
     if (status === 'authenticated') return
     if (sessionStorage.getItem('google-prompt-dismissed')) return
-    const timer = setTimeout(() => setVisible(true), 1500)
+    const timer = setTimeout(() => {
+      setVisible(true)
+      track.guestSignupPromptShown('', 'floating_prompt')
+    }, 1500)
     return () => clearTimeout(timer)
   }, [status])
 
@@ -26,6 +30,7 @@ export function GoogleSignInPrompt() {
 
   async function handleGoogleSignIn() {
     setLoading(true)
+    track.guestSignupClicked('floating_prompt', 'google')
     await signIn('google', { callbackUrl: '/dashboard' })
   }
 
