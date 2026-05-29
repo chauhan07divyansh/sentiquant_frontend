@@ -218,9 +218,9 @@ function ReasoningSection({ analysis }: { analysis: StockAnalysis }) {
         {/* Signal summary pill */}
         <div className={cn(
           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border',
-          signal === 'strong-buy' || signal === 'buy'
+          signal === 'buy'
             ? 'bg-emerald-400/10 border-emerald-400/20 text-emerald-400'
-            : signal === 'sell' || signal === 'strong-sell'
+            : signal === 'sell' || signal === 'avoid'
             ? 'bg-rose-400/10 border-rose-400/20 text-rose-400'
             : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
         )}>
@@ -253,9 +253,9 @@ function ReasoningSection({ analysis }: { analysis: StockAnalysis }) {
       {/* Summary verdict */}
       <div className={cn(
         'mx-5 mb-4 px-4 py-3 rounded-xl border text-xs leading-relaxed',
-        signal === 'strong-buy' || signal === 'buy'
+        signal === 'buy'
           ? 'bg-emerald-400/5 border-emerald-400/20 text-emerald-300'
-          : signal === 'sell' || signal === 'strong-sell'
+          : signal === 'sell' || signal === 'avoid'
           ? 'bg-rose-400/5 border-rose-400/20 text-rose-300'
           : 'bg-amber-400/5 border-amber-400/20 text-amber-300'
       )}>
