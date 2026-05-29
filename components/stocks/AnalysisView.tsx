@@ -16,30 +16,260 @@ import type { StockAnalysis } from '@/types/stock.types'
 // ─────────────────────────────────────────────
 //  HELPERS
 // ─────────────────────────────────────────────
-
 function parsePrice(str: string): number | null {
   if (!str || str.trim() === 'N/A' || str.trim() === '') return null
   const m = str.replace(/,/g, '').match(/\d+\.?\d*/)
   return m ? parseFloat(m[0]) : null
 }
-
 function scoreGradient(score: number): string {
   if (score >= 80) return 'from-emerald-500 to-green-400'
   if (score >= 65) return 'from-brand-cyan to-brand-blue'
   if (score >= 50) return 'from-amber-400 to-orange-400'
   return 'from-rose-500 to-pink-400'
 }
-
 function scoreLabel(score: number): string {
   if (score >= 80) return 'Strong'
   if (score >= 65) return 'Good'
   if (score >= 50) return 'Moderate'
   return 'Weak'
 }
-
-// Format price with exactly 2 decimal places
 function fmtPrice(n: number): string {
   return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+// ─────────────────────────────────────────────
+//  REASONING ENGINE
+//  Converts raw technical data into plain-English bullets
+// ─────────────────────────────────────────────
+interface ReasoningPoint {
+  label: string
+  text: string
+  status: 'bullish' | 'bearish' | 'neutral'
+}
+
+function buildReasoning(analysis: StockAnalysis): ReasoningPoint[] {
+  const points: ReasoningPoint[] = []
+  const tech = analysis.technical_indicators ?? {}
+  const sent = analysis.sentiment ?? {}
+
+  // ── RSI ──
+  const rsi = tech['rsi'] ?? tech['RSI'] ?? null
+  if (rsi != null && typeof rsi === 'number') {
+    if (rsi < 30) {
+      points.push({ label: 'RSI', text: `RSI at ${rsi.toFixed(1)} — deeply oversold. Historically strong bounce zone.`, status: 'bullish' })
+    } else if (rsi < 45) {
+      points.push({ label: 'RSI', text: `RSI at ${rsi.toFixed(1)} — oversold territory. Good entry conditions building.`, status: 'bullish' })
+    } else if (rsi > 75) {
+      points.push({ label: 'RSI', text: `RSI at ${rsi.toFixed(1)} — overbought. Momentum may be running out soon.`, status: 'bearish' })
+    } else if (rsi > 60) {
+      points.push({ label: 'RSI', text: `RSI at ${rsi.toFixed(1)} — elevated but not extreme. Trend is strong.`, status: 'neutral' })
+    } else {
+      points.push({ label: 'RSI', text: `RSI at ${rsi.toFixed(1)} — neutral zone. No strong directional signal from momentum.`, status: 'neutral' })
+    }
+  }
+
+  // ── MACD ──
+  const macdLine = tech['MACD Line'] ?? tech['macd_line'] ?? null
+  const macdSignal = tech['MACD Signal'] ?? tech['macd_signal'] ?? null
+  const macdHist = tech['MACD Histogram'] ?? tech['macd_histogram'] ?? null
+  if (macdLine != null && macdSignal != null) {
+    const crossedAbove = Number(macdLine) > Number(macdSignal)
+    const histGrowing = macdHist != null && Number(macdHist) > 0
+    if (crossedAbove && histGrowing) {
+      points.push({ label: 'MACD', text: `MACD line above signal line with growing histogram — momentum is accelerating upward.`, status: 'bullish' })
+    } else if (crossedAbove) {
+      points.push({ label: 'MACD', text: `MACD line above signal line — bullish crossover, but momentum is slowing.`, status: 'neutral' })
+    } else if (!crossedAbove && !histGrowing) {
+      points.push({ label: 'MACD', text: `MACD below signal line with negative histogram — downward momentum is in play.`, status: 'bearish' })
+    } else {
+      points.push({ label: 'MACD', text: `MACD below signal line — bearish crossover but momentum may be stabilizing.`, status: 'neutral' })
+    }
+  }
+
+  // ── Bollinger Bands ──
+  const bbUpper = tech['Bollinger Upper'] ?? tech['bollinger_bands_upper'] ?? null
+  const bbLower = tech['Bollinger Lower'] ?? tech['bollinger_bands_lower'] ?? null
+  const price = analysis.current_price
+  if (bbUpper != null && bbLower != null && price) {
+    const range = Number(bbUpper) - Number(bbLower)
+    const position = range > 0 ? (price - Number(bbLower)) / range : 0.5
+    if (position < 0.2) {
+      points.push({ label: 'Bollinger', text: `Price near lower Bollinger Band — oversold relative to recent range. Room to move up.`, status: 'bullish' })
+    } else if (position > 0.8) {
+      points.push({ label: 'Bollinger', text: `Price near upper Bollinger Band — extended relative to recent range. Limited upside room.`, status: 'bearish' })
+    } else {
+      points.push({ label: 'Bollinger', text: `Price in middle of Bollinger Bands — neither stretched nor compressed. Wait for clearer move.`, status: 'neutral' })
+    }
+  }
+
+  // ── Stochastic ──
+  const stochK = tech['Stochastic K'] ?? tech['stochastic_k'] ?? null
+  if (stochK != null && typeof stochK === 'number') {
+    if (stochK < 20) {
+      points.push({ label: 'Stochastic', text: `Stochastic at ${stochK.toFixed(1)} — oversold. Short-term reversal signals possible.`, status: 'bullish' })
+    } else if (stochK > 80) {
+      points.push({ label: 'Stochastic', text: `Stochastic at ${stochK.toFixed(1)} — overbought. Short-term pullback risk is elevated.`, status: 'bearish' })
+    }
+  }
+
+  // ── Support / Resistance ──
+  const support = tech['S/R Support'] ?? tech['support_resistance_support'] ?? null
+  const resistance = tech['S/R Resistance'] ?? tech['support_resistance_resistance'] ?? null
+  if (support != null && resistance != null && price) {
+    const distToSupport = ((price - Number(support)) / price * 100).toFixed(1)
+    const distToResistance = ((Number(resistance) - price) / price * 100).toFixed(1)
+    points.push({
+      label: 'Support / Resistance',
+      text: `Support at ₹${Number(support).toFixed(0)} (${distToSupport}% below). Resistance at ₹${Number(resistance).toFixed(0)} (${distToResistance}% above).`,
+      status: Number(distToSupport) < Number(distToResistance) ? 'bullish' : 'neutral'
+    })
+  }
+
+  // ── Sentiment ──
+  const sentSummary = sent['summary'] as { positive?: number; negative?: number; neutral?: number } | null
+  if (sentSummary && typeof sentSummary === 'object') {
+    const pos = sentSummary.positive ?? 0
+    const neg = sentSummary.negative ?? 0
+    const total = pos + neg + (sentSummary.neutral ?? 0)
+    if (total > 0) {
+      const posPct = Math.round((pos / total) * 100)
+      if (posPct >= 70) {
+        points.push({ label: 'News Sentiment', text: `${pos} of ${total} recent news articles are positive (${posPct}%). Market mood is supportive.`, status: 'bullish' })
+      } else if (posPct <= 30) {
+        points.push({ label: 'News Sentiment', text: `${neg} of ${total} recent articles are negative (${100 - posPct}%). Market mood is cautious.`, status: 'bearish' })
+      } else {
+        points.push({ label: 'News Sentiment', text: `Mixed sentiment — ${pos} positive, ${neg} negative out of ${total} articles. No clear news catalyst.`, status: 'neutral' })
+      }
+    }
+  }
+
+  // ── Risk / Volatility ──
+  const atr = tech['Risk Atr'] ?? tech['risk_metrics_atr'] ?? null
+  const riskLevel = tech['Risk Risk Level'] ?? tech['risk_metrics_risk_level'] ?? null
+  if (riskLevel) {
+    const lvl = String(riskLevel).toUpperCase()
+    if (lvl === 'LOW') {
+      points.push({ label: 'Volatility', text: `Low volatility stock — steady mover. Easier to hold through minor pullbacks.`, status: 'bullish' })
+    } else if (lvl === 'HIGH') {
+      points.push({ label: 'Volatility', text: `High volatility stock — moves sharply. Use strict stop loss and smaller position size.`, status: 'bearish' })
+    } else {
+      points.push({ label: 'Volatility', text: `Moderate volatility. Normal position sizing applies.`, status: 'neutral' })
+    }
+  } else if (atr != null && price) {
+    const atrPct = (Number(atr) / price) * 100
+    if (atrPct > 3) {
+      points.push({ label: 'Volatility', text: `ATR at ${atrPct.toFixed(1)}% of price — high daily swings. Be prepared for choppy movement.`, status: 'bearish' })
+    } else if (atrPct < 1) {
+      points.push({ label: 'Volatility', text: `ATR at ${atrPct.toFixed(1)}% of price — low daily swings. Stable, steady mover.`, status: 'bullish' })
+    }
+  }
+
+  return points
+}
+
+// ─────────────────────────────────────────────
+//  REASONING SECTION COMPONENT
+// ─────────────────────────────────────────────
+function ReasoningSection({ analysis }: { analysis: StockAnalysis }) {
+  const signal = classifySignal(analysis.trading_plan.signal)
+  const points = buildReasoning(analysis)
+  if (points.length === 0) return null
+
+  const bullish = points.filter(p => p.status === 'bullish').length
+  const bearish = points.filter(p => p.status === 'bearish').length
+
+  const statusIcon = (status: ReasoningPoint['status']) => {
+    if (status === 'bullish') return (
+      <div className="w-5 h-5 rounded-full bg-emerald-400/15 border border-emerald-400/30 flex items-center justify-center shrink-0">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#34d399" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 5l2 2 4-4" />
+        </svg>
+      </div>
+    )
+    if (status === 'bearish') return (
+      <div className="w-5 h-5 rounded-full bg-rose-400/15 border border-rose-400/30 flex items-center justify-center shrink-0">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round">
+          <path d="M2 2l6 6M8 2l-6 6" />
+        </svg>
+      </div>
+    )
+    return (
+      <div className="w-5 h-5 rounded-full bg-amber-400/15 border border-amber-400/30 flex items-center justify-center shrink-0">
+        <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-gray-100 dark:border-surface-800 flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-cyan">
+              <circle cx="7" cy="7" r="5.5" /><path d="M7 4v4M7 9.5v.5" />
+            </svg>
+            <span className="font-semibold text-sm text-surface-900 dark:text-white">Why this signal?</span>
+          </div>
+          <p className="text-xs text-surface-500 leading-relaxed">
+            {points.length} data points analyzed · {bullish} bullish · {bearish} bearish
+          </p>
+        </div>
+        {/* Signal summary pill */}
+        <div className={cn(
+          'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border',
+          signal === 'strong-buy' || signal === 'buy'
+            ? 'bg-emerald-400/10 border-emerald-400/20 text-emerald-400'
+            : signal === 'sell' || signal === 'strong-sell'
+            ? 'bg-rose-400/10 border-rose-400/20 text-rose-400'
+            : 'bg-amber-400/10 border-amber-400/20 text-amber-400'
+        )}>
+          <span>{bullish}↑</span>
+          <span className="opacity-40">·</span>
+          <span>{bearish}↓</span>
+        </div>
+      </div>
+
+      {/* Reasoning points */}
+      <div className="px-5 py-4 flex flex-col gap-3">
+        {points.map((point, i) => (
+          <div key={i} className="flex items-start gap-3">
+            {statusIcon(point.status)}
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <span className={cn(
+                'text-[10px] font-bold uppercase tracking-widest',
+                point.status === 'bullish' ? 'text-emerald-400'
+                : point.status === 'bearish' ? 'text-rose-400'
+                : 'text-amber-400'
+              )}>
+                {point.label}
+              </span>
+              <span className="text-xs text-surface-400 leading-relaxed">{point.text}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Summary verdict */}
+      <div className={cn(
+        'mx-5 mb-4 px-4 py-3 rounded-xl border text-xs leading-relaxed',
+        signal === 'strong-buy' || signal === 'buy'
+          ? 'bg-emerald-400/5 border-emerald-400/20 text-emerald-300'
+          : signal === 'sell' || signal === 'strong-sell'
+          ? 'bg-rose-400/5 border-rose-400/20 text-rose-300'
+          : 'bg-amber-400/5 border-amber-400/20 text-amber-300'
+      )}>
+        <span className="font-semibold">AI verdict: </span>
+        {analysis.trading_plan.strategy || (
+          bullish > bearish
+            ? `${bullish} of ${points.length} indicators are bullish. Technical setup favors the current signal.`
+            : bearish > bullish
+            ? `${bearish} of ${points.length} indicators show caution. Risk is elevated at current levels.`
+            : `Indicators are mixed. Wait for clearer confirmation before acting.`
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ─────────────────────────────────────────────
@@ -145,13 +375,10 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
 
       {/* ── 1. Hero — Price + Signal ── */}
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900">
-        {/* Glow background */}
         <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/6 via-transparent to-brand-cyan/6 pointer-events-none" />
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-cyan/5 rounded-full blur-3xl pointer-events-none" />
-
         <div className="relative p-5 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
-            {/* Price block */}
             <div className="flex flex-col gap-2">
               <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -167,8 +394,6 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
                 {analysis.time_horizon} · {analysis.system_type} system
               </p>
             </div>
-
-            {/* Grade + Signal */}
             <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 flex-wrap">
               <GradeBadge grade={analysis.investment_grade} showFull />
               <SignalBadge strength={signal} className="text-sm px-3 py-1.5" />
@@ -179,8 +404,6 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
 
       {/* ── 2. Score + AI Signal ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-        {/* AI Score */}
         <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 sm:p-6">
           <div className={cn('absolute inset-0 bg-gradient-to-br opacity-[0.05] pointer-events-none', scoreGrad)} />
           <div className="relative flex flex-col gap-4">
@@ -201,20 +424,17 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
                 {scoreLabel(analysis.overall_score)}
               </span>
             </div>
-
             <div className="flex items-baseline gap-1.5 leading-none">
               <span className={cn('font-display text-6xl font-bold bg-gradient-to-r bg-clip-text text-transparent tabular-nums', scoreGrad)}>
                 {analysis.overall_score.toFixed(2)}
               </span>
               <span className="text-lg text-surface-500 font-normal">/100</span>
             </div>
-
             <ScoreBar score={analysis.overall_score} showValue={false} />
             <GradeBadge grade={analysis.investment_grade} showFull className="self-start" />
           </div>
         </div>
 
-        {/* AI Signal */}
         <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 sm:p-6">
           <div className="flex flex-col gap-4 h-full">
             <div className="flex items-center gap-2">
@@ -223,26 +443,23 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
               </svg>
               <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest">AI Signal</span>
             </div>
-
-            <div className={cn(
-              'flex items-center justify-center px-6 py-5 rounded-xl border',
-              signalBg(signal)
-            )}>
+            <div className={cn('flex items-center justify-center px-6 py-5 rounded-xl border', signalBg(signal))}>
               <span className={cn('font-display text-3xl font-bold tracking-wider', signalColor(signal))}>
                 {signalLabel(signal).toUpperCase()}
               </span>
             </div>
-
             <p className="text-xs text-surface-400 leading-relaxed line-clamp-3 flex-1">
               {analysis.trading_plan.strategy}
             </p>
-
             <SystemBadge type={analysis.system_type} className="self-start" />
           </div>
         </div>
       </div>
 
-      {/* ── 3. Technical Reference Levels — redesigned ── */}
+      {/* ── 3. WHY THIS SIGNAL — Reasoning section ── */}
+      <ReasoningSection analysis={analysis} />
+
+      {/* ── 4. Technical Reference Levels ── */}
       <div className="flex flex-col gap-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900 dark:text-white">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-cyan">
@@ -250,9 +467,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
           </svg>
           Technical Reference Levels
         </h2>
-
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-
           {/* Entry */}
           <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4 sm:p-5">
             <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/6 to-transparent pointer-events-none" />
@@ -265,19 +480,15 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Watch Zone</p>
-                  <p className="text-[10px] text-surface-600">Reference watch zone</p>
+                  <p className="text-[10px] text-surface-600">Reference entry zone</p>
                 </div>
               </div>
               {entryNum != null ? (
                 <>
-                  <p className="font-mono text-2xl sm:text-3xl font-bold text-surface-900 dark:text-white tabular-nums leading-none">
-                    {fmtPrice(entryNum)}
-                  </p>
+                  <p className="font-mono text-2xl sm:text-3xl font-bold text-surface-900 dark:text-white tabular-nums leading-none">{fmtPrice(entryNum)}</p>
                   {entryVsCurrent != null && (
-                    <span className={cn(
-                      'inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md w-fit',
-                      entryVsCurrent >= 0 ? 'bg-emerald-400/10 text-emerald-400' : 'bg-rose-400/10 text-rose-400'
-                    )}>
+                    <span className={cn('inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md w-fit',
+                      entryVsCurrent >= 0 ? 'bg-emerald-400/10 text-emerald-400' : 'bg-rose-400/10 text-rose-400')}>
                       {entryVsCurrent >= 0 ? '+' : ''}{entryVsCurrent.toFixed(2)}% vs current
                     </span>
                   )}
@@ -303,16 +514,14 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
                   <p className="text-[10px] text-surface-600">Upper technical level</p>
                 </div>
               </div>
-              <p className="font-mono text-2xl sm:text-3xl font-bold text-emerald-400 tabular-nums leading-none">
-                {fmtPrice(targetNum)}
-              </p>
+              <p className="font-mono text-2xl sm:text-3xl font-bold text-emerald-400 tabular-nums leading-none">{fmtPrice(targetNum)}</p>
               <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md w-fit bg-emerald-400/10 text-emerald-400">
                 +{targetGainPct.toFixed(2)}% potential gain
               </span>
             </div>
           </div>
 
-          {/* Risk Reference */}
+          {/* Stop */}
           <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-white dark:bg-surface-900 p-4 sm:p-5">
             <div className="absolute inset-0 bg-gradient-to-br from-rose-500/6 to-transparent pointer-events-none" />
             <div className="relative flex flex-col gap-3">
@@ -329,9 +538,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
               </div>
               {stopNum != null ? (
                 <>
-                  <p className="font-mono text-2xl sm:text-3xl font-bold text-rose-400 tabular-nums leading-none">
-                    {fmtPrice(stopNum)}
-                  </p>
+                  <p className="font-mono text-2xl sm:text-3xl font-bold text-rose-400 tabular-nums leading-none">{fmtPrice(stopNum)}</p>
                   {stopLossPct != null && (
                     <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md w-fit bg-rose-400/10 text-rose-400">
                       {stopLossPct.toFixed(2)}% max loss
@@ -364,7 +571,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
         )}
       </div>
 
-      {/* ── 4. Risk-Reward ── */}
+      {/* ── 5. Risk-Reward ── */}
       {rrRatio != null && stopLossPct != null && (
         <div className="rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 sm:p-6">
           <h3 className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest mb-5 flex items-center gap-2">
@@ -373,60 +580,31 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
             </svg>
             Risk-Reward Analysis
           </h3>
-
           <div className="grid grid-cols-3 gap-4 sm:gap-6 mb-6">
-            {/* Upside Reference */}
             <div className="flex flex-col gap-1.5">
               <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Upside Reference</p>
-              <p className="font-mono text-xl sm:text-2xl font-bold text-emerald-400 tabular-nums leading-none">
-                +{targetGainPct.toFixed(2)}%
-              </p>
-              {entryNum != null && (
-                <p className="text-[10px] text-surface-500">
-                  {fmtPrice(targetNum - entryNum)} per share
-                </p>
-              )}
+              <p className="font-mono text-xl sm:text-2xl font-bold text-emerald-400 tabular-nums leading-none">+{targetGainPct.toFixed(2)}%</p>
+              {entryNum != null && <p className="text-[10px] text-surface-500">{fmtPrice(targetNum - entryNum)} per share</p>}
             </div>
-
-            {/* Downside Reference */}
             <div className="flex flex-col gap-1.5">
               <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Downside Reference</p>
-              <p className="font-mono text-xl sm:text-2xl font-bold text-rose-400 tabular-nums leading-none">
-                {stopLossPct.toFixed(2)}%
-              </p>
-              {entryNum != null && stopNum != null && (
-                <p className="text-[10px] text-surface-500">
-                  {fmtPrice(Math.abs(stopNum - entryNum))} per share
-                </p>
-              )}
+              <p className="font-mono text-xl sm:text-2xl font-bold text-rose-400 tabular-nums leading-none">{stopLossPct.toFixed(2)}%</p>
+              {entryNum != null && stopNum != null && <p className="text-[10px] text-surface-500">{fmtPrice(Math.abs(stopNum - entryNum))} per share</p>}
             </div>
-
-            {/* R:R Ratio */}
             <div className="flex flex-col gap-1.5">
               <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Risk:Reward</p>
-              <p className="font-mono text-xl sm:text-2xl font-bold text-surface-900 dark:text-white tabular-nums leading-none">
-                1:{rrRatio.toFixed(2)}
-              </p>
-              <p className={cn(
-                'text-[10px] font-semibold',
-                rrRatio >= 3 ? 'text-emerald-400' : rrRatio >= 2 ? 'text-brand-cyan' : 'text-amber-400'
-              )}>
+              <p className="font-mono text-xl sm:text-2xl font-bold text-surface-900 dark:text-white tabular-nums leading-none">1:{rrRatio.toFixed(2)}</p>
+              <p className={cn('text-[10px] font-semibold', rrRatio >= 3 ? 'text-emerald-400' : rrRatio >= 2 ? 'text-brand-cyan' : 'text-amber-400')}>
                 {rrRatio >= 3 ? '✦ Excellent' : rrRatio >= 2 ? '✓ Favorable' : '⚠ Consider carefully'}
               </p>
             </div>
           </div>
-
-          {/* Visual bar */}
           <div className="flex items-center gap-0 rounded-full overflow-hidden h-2.5">
-            <div
-              className="h-full bg-gradient-to-r from-rose-500/80 to-rose-400/60 rounded-l-full"
-              style={{ width: `${Math.abs(stopLossPct) / (targetGainPct + Math.abs(stopLossPct)) * 100}%` }}
-            />
+            <div className="h-full bg-gradient-to-r from-rose-500/80 to-rose-400/60 rounded-l-full"
+              style={{ width: `${Math.abs(stopLossPct) / (targetGainPct + Math.abs(stopLossPct)) * 100}%` }} />
             <div className="w-px h-full bg-surface-950 shrink-0" />
-            <div
-              className="h-full bg-gradient-to-r from-emerald-500/60 to-emerald-400/80 rounded-r-full"
-              style={{ width: `${targetGainPct / (targetGainPct + Math.abs(stopLossPct)) * 100}%` }}
-            />
+            <div className="h-full bg-gradient-to-r from-emerald-500/60 to-emerald-400/80 rounded-r-full"
+              style={{ width: `${targetGainPct / (targetGainPct + Math.abs(stopLossPct)) * 100}%` }} />
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-[10px] text-rose-400/70 font-medium">Stop loss</span>
@@ -435,7 +613,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
         </div>
       )}
 
-      {/* ── 5. Action buttons ── */}
+      {/* ── 6. Action buttons ── */}
       <div className="flex flex-wrap gap-3">
         <button
           onClick={() => watched ? removeFromWatchlist(analysis.symbol) : addToWatchlist(analysis.symbol)}
@@ -451,7 +629,6 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
           </svg>
           {watched ? 'In Watchlist' : 'Add to Watchlist'}
         </button>
-
         <button
           onClick={handleShare}
           className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-surface-700 text-surface-700 dark:text-surface-300 hover:bg-surface-800/20 text-sm font-medium transition-all duration-150"
@@ -464,7 +641,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
         </button>
       </div>
 
-      {/* ── 6. Trailing stop advice ── */}
+      {/* ── 7. Trailing stop advice ── */}
       {analysis.trading_plan.trailing_stop_advice && (
         <p className="text-xs text-surface-400 leading-relaxed border-l-2 border-brand-blue/30 pl-3">
           <span className="font-semibold text-surface-500">Trailing stop:</span>{' '}
@@ -472,38 +649,20 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
         </p>
       )}
 
-      {/* ── 7. Detail sections ── */}
+      {/* ── 8. Detail sections ── */}
       <div className="flex flex-col gap-3">
-        <Section
-          title="Technical Indicators"
-          defaultOpen
-          icon={
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M2 10L5.5 6 8 8.5 12 4" />
-            </svg>
-          }
+        <Section title="Technical Indicators" defaultOpen
+          icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M2 10L5.5 6 8 8.5 12 4" /></svg>}
         >
-          {techRows.length > 0 ? (
-            <KVTable rows={techRows} />
-          ) : (
-            <p className="text-xs text-surface-500 italic">
-              Technical indicator data is being loaded. Try refreshing the analysis.
-            </p>
+          {techRows.length > 0 ? <KVTable rows={techRows} /> : (
+            <p className="text-xs text-surface-500 italic">Technical indicator data is being loaded. Try refreshing the analysis.</p>
           )}
         </Section>
 
-        <Section
-          title="Fundamentals"
-          icon={
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <rect x="2" y="2" width="10" height="10" rx="1.5" />
-              <path d="M5 7h4M5 5h4M5 9h2" />
-            </svg>
-          }
+        <Section title="Fundamentals"
+          icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="2" y="2" width="10" height="10" rx="1.5" /><path d="M5 7h4M5 5h4M5 9h2" /></svg>}
         >
-          {fundRows.length > 0 ? (
-            <KVTable rows={fundRows} />
-          ) : (
+          {fundRows.length > 0 ? <KVTable rows={fundRows} /> : (
             <p className="text-xs text-surface-500 italic">
               {analysis.system_type === 'Swing'
                 ? 'Fundamental data is not included in swing analysis. Switch to Position analysis for full fundamentals.'
@@ -512,27 +671,21 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
           )}
         </Section>
 
-        <Section
-          title="Sentiment"
-          icon={
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <circle cx="7" cy="7" r="5.5" />
-              <path d="M4.5 8.5s.75 1.5 2.5 1.5 2.5-1.5 2.5-1.5M5 5.5v.5M9 5.5v.5" />
-            </svg>
-          }
+        <Section title="Sentiment"
+          icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="7" cy="7" r="5.5" /><path d="M4.5 8.5s.75 1.5 2.5 1.5 2.5-1.5 2.5-1.5M5 5.5v.5M9 5.5v.5" /></svg>}
         >
           <KVTable rows={sentRows} />
         </Section>
       </div>
 
-      {/* ── 8. Disclaimer ── */}
+      {/* ── 9. Disclaimer ── */}
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
         <p className="text-xs text-surface-400 leading-relaxed">
           <span className="font-semibold text-amber-400">Disclaimer:</span> This tool provides AI-generated technical analysis for educational and informational purposes only. Sentiquant is <span className="font-semibold text-amber-300">NOT a SEBI-registered investment advisor</span>. Nothing on this platform constitutes investment advice, a recommendation to buy or sell securities, or a solicitation of any kind. All data shown are technical reference levels only. Please conduct your own research and consult a SEBI-registered financial advisor before making any investment decisions.
         </p>
       </div>
 
-      {/* ── 9. Timestamp ── */}
+      {/* ── 10. Timestamp ── */}
       <p className="text-xs text-surface-600 text-right">
         Analysis generated {timeAgo(analysis.analysis_timestamp)}
       </p>
