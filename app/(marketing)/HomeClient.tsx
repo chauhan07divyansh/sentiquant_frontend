@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { cn } from '@/lib/utils/cn'
 
 // ─────────────────────────────────────────────
 //  DESIGN TOKENS
@@ -576,7 +575,7 @@ export function HomeClient() {
               {'Four pillars,\none verdict.'}
             </h2>
             <p style={{ fontFamily: 'arcadia, Inter, sans-serif', fontSize: 16, color: C.silver, lineHeight: 1.5, maxWidth: 560, margin: 0 }}>
-              We don't trust any single indicator. Each stock is scored across four independent dimensions — then the engine weighs them by the current market regime and produces the signal you see.
+              We don&apos;t trust any single indicator. Each stock is scored across four independent dimensions — then the engine weighs them by the current market regime and produces the signal you see.
             </p>
           </div>
 
