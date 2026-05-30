@@ -255,7 +255,7 @@ function DemoCard() {
   useEffect(() => {
     let cancelled = false
     const timers: ReturnType<typeof setTimeout>[] = []
-    const T = (fn: () => void, ms: number) => { const t = setTimeout(() => { if (!cancelled) fn() }; ms); timers.push(t) }
+    const T = (fn: () => void, ms: number) => { const t = setTimeout(() => { if (!cancelled) fn() }, ms); timers.push(t) }
 
     // Phase 1: typing
     setPhase('typing')
