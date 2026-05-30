@@ -1,673 +1,1197 @@
-'use client'
+'use client';
 
-import { useEffect } from 'react'
-import Link from 'next/link'
-import { signIn } from 'next-auth/react'
-import { track } from '@/lib/analytics'
-import { cn } from '@/lib/utils/cn'
-import { useInView, useCountUp } from '@/lib/animations'
-import { use3DTilt } from '@/lib/use3DTilt'
-import { useMagneticHover } from '@/lib/useMagneticHover'
+/**
+ * SentiQuant — Landing Page (HomeClient)
+ * ──────────────────────────────────────────────────────────────────
+ * Visual system: Mercury — "Mountain Top Command Center"
+ *   Backgrounds: Midnight Slate (#1e1e2a) / Deep Space (#171721) / Graphite (#272735)
+ *   Text:        Starlight (#ededf3) primary, Silver (#c3c3cc) secondary
+ *   Accent:      Mercury Blue (#5266eb) — primary CTA buttons ONLY
+ *   Borders:     Lead (#70707d)
+ *   Type:        arcadiaDisplay (headlines) + arcadia (body) — Inter fallback
+ *   Radii:       cards 0px · inputs/buttons 32-40px (pill) · containers 4px
+ *   Elevation:   no shadows. Use surface-color shifts.
+ *
+ * Functional exception to the monochrome rule:
+ *   Signal badges (BUY/SELL/HOLD) in the demo card and portfolio table keep
+ *   their semantic colors (emerald/rose/amber). They are *product content*,
+ *   not site chrome, and signal-encoding is the product's whole point.
+ *
+ * Fonts:
+ *   `arcadia` and `arcadiaDisplay` are commercial fonts. Without them, the
+ *   stack falls back to Inter, then system sans. To wire up the real fonts,
+ *   self-host them and add @font-face rules in your global CSS, or use a
+ *   licensed CDN. Weight 360 is intentionally between Light (300) and
+ *   Regular (400) — use a variable font, or accept rounding to 300/400.
+ *
+ * Routes: /, /stocks, /stocks/[symbol], /portfolio, /pricing, /auth/signin
+ * Auth:   next-auth v4 (`useSession`, `signOut`)
+ */
 
-// ─────────────────────────────────────────────
-//  DATA
-// ─────────────────────────────────────────────
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
+import { useEffect, useState } from 'react';
+import {
+  ArrowRight,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  ChevronDown,
+  Menu,
+  X,
+} from 'lucide-react';
 
-const HOW_IT_WORKS = [
+// ───────────── Mercury tokens (inlined for portability) ─────────────
+const C = {
+  mercuryBlue:   '#5266eb',
+  ghostBlue:     '#cdddff',
+  deepSpace:     '#171721',
+  midnightSlate: '#1e1e2a',
+  graphite:      '#272735',
+  lead:          '#70707d',
+  starlight:     '#ededf3',
+  silver:        '#c3c3cc',
+  pureWhite:     '#ffffff',
+};
+
+const ARCADIA_DISPLAY = `'arcadiaDisplay', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`;
+const ARCADIA = `'arcadia', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`;
+
+// ─────────────────────── Data ───────────────────────
+type Signal = 'BUY' | 'SELL' | 'HOLD';
+
+type DemoStock = {
+  symbol: string;
+  name: string;
+  signal: Signal;
+  cmp: number;
+  change: number;
+  t1: number; t2: number; t3: number;
+  rsi: number;
+  macd: 'Bullish' | 'Bearish' | 'Neutral';
+  sentiment: number;
+};
+
+const DEMO_STOCKS: DemoStock[] = [
+  { symbol: 'RELIANCE', name: 'Reliance Industries',        signal: 'BUY',  cmp: 2847.50, change:  1.24, t1: 2920, t2: 3050, t3: 3180, rsi: 58, macd: 'Bullish', sentiment:  0.72 },
+  { symbol: 'TCS',      name: 'Tata Consultancy Services',  signal: 'HOLD', cmp: 4123.80, change: -0.15, t1: 4180, t2: 4290, t3: 4400, rsi: 51, macd: 'Neutral', sentiment:  0.18 },
+  { symbol: 'HDFCBANK', name: 'HDFC Bank',                  signal: 'BUY',  cmp: 1684.20, change:  0.86, t1: 1720, t2: 1780, t3: 1850, rsi: 62, macd: 'Bullish', sentiment:  0.55 },
+  { symbol: 'INFY',     name: 'Infosys',                    signal: 'SELL', cmp: 1542.65, change: -1.42, t1: 1490, t2: 1430, t3: 1370, rsi: 38, macd: 'Bearish', sentiment: -0.34 },
+];
+
+type PortfolioRow = DemoStock & { hit: 'T1' | 'T2' | 'T3' | null };
+
+const PORTFOLIO_ROWS: PortfolioRow[] = [
+  { symbol: 'RELIANCE',   name: 'Reliance Industries', signal: 'BUY',  cmp: 2912.40,  change:  3.52, t1: 2920,  t2: 3050,  t3: 3180,  rsi: 61, macd: 'Bullish', sentiment:  0.72, hit: null },
+  { symbol: 'BAJFINANCE', name: 'Bajaj Finance',       signal: 'BUY',  cmp: 7245.10,  change:  5.81, t1: 7100,  t2: 7400,  t3: 7650,  rsi: 64, macd: 'Bullish', sentiment:  0.61, hit: 'T1' },
+  { symbol: 'ITC',        name: 'ITC Ltd',             signal: 'HOLD', cmp:  462.30,  change:  0.22, t1:  470,  t2:  485,  t3:  502,  rsi: 53, macd: 'Neutral', sentiment:  0.12, hit: null },
+  { symbol: 'TATAMOTORS', name: 'Tata Motors',         signal: 'BUY',  cmp:  985.75,  change:  2.14, t1: 1020,  t2: 1075,  t3: 1130,  rsi: 59, macd: 'Bullish', sentiment:  0.48, hit: null },
+  { symbol: 'MARUTI',     name: 'Maruti Suzuki',       signal: 'SELL', cmp: 11240.00, change: -1.85, t1:11000,  t2:10750,  t3:10400,  rsi: 41, macd: 'Bearish', sentiment: -0.28, hit: null },
+];
+
+const METHODOLOGY = [
+  { num: '01', label: 'Sentiment',   desc: 'News and disclosures are read in real time. Tone, magnitude and recency are scored against historical baselines.' },
+  { num: '02', label: 'Technical',   desc: 'RSI, MACD, Bollinger Bands, Stochastic, plus support and resistance — read together, never in isolation.' },
+  { num: '03', label: 'Fundamental', desc: 'Revenue, margins, leverage and growth trajectory. The story behind the price, refreshed every quarter.' },
+  { num: '04', label: 'Risk',        desc: 'Volatility, drawdown depth and beta. We weight every signal by how much pain it might ask you to sit through.' },
+];
+
+const FAQ_ITEMS: { q: string; a: string }[] = [
   {
-    step: '01',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-      </svg>
-    ),
-    title: 'Enter a stock',
-    body: 'Search any NSE or BSE ticker. 250+ stocks covered — large caps to mid caps.',
+    q: 'What is SentiQuant?',
+    a: 'SentiQuant is an AI signal engine for NSE-listed Indian stocks. It analyses news sentiment, technical indicators, fundamentals and price action — then hands you a single BUY / HOLD / SELL signal with three target prices (T1, T2, T3) and a risk profile.',
   },
   {
-    step: '02',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 6v6l4 2" /><path d="M18 2v4h4" />
-      </svg>
-    ),
-    title: 'AI analyzes it instantly',
-    body: 'Our AI reads technicals, fundamentals, and market sentiment — all at once, in under 60 seconds.',
+    q: 'How does the AI decide on a signal?',
+    a: 'Every stock is scored across four pillars: sentiment, technicals, fundamentals and risk. The pillars are weighted by the current market regime and combined into one directional signal with target levels.',
   },
   {
-    step: '03',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" />
-      </svg>
-    ),
-    title: 'Get clear insights and signals',
-    body: 'Entry, stop-loss, 3 targets, a 0–100 score, and a plain-English thesis — no jargon, no noise.',
+    q: 'Is this SEBI-registered investment advice?',
+    a: 'No. SentiQuant publishes AI-generated analytical signals for research and educational purposes only. Nothing here is personalised investment advice. Always consult a SEBI-registered advisor before acting on any signal.',
   },
-] as const
+  {
+    q: 'Can I try it without signing up?',
+    a: 'Yes. Open any stock page — for example, /stocks/RELIANCE — and you will see one full analysis per day with no signup required. Create a free account to lift that limit to ten analyses a day.',
+  },
+  {
+    q: 'What is included in the free plan?',
+    a: 'Ten stock analyses per day, one portfolio generation per day, full access to every technical indicator, sentiment scoring and T1 / T2 / T3 targets. Pro removes the daily limits.',
+  },
+  {
+    q: 'How often is the data updated?',
+    a: 'Price and technical data refresh on every analysis run during market hours. News sentiment refreshes every few hours. Fundamentals update on quarterly results.',
+  },
+  {
+    q: 'Which stocks are supported?',
+    a: 'Every equity listed on NSE — large cap, mid cap, small cap, F&O names, everything. Just use the standard NSE ticker (e.g. INFY, HDFCBANK, TATAMOTORS).',
+  },
+];
 
-const STAGGER = ['', 'delay-75', 'delay-150', 'delay-200', 'delay-300', 'delay-500'] as const
-
-// ─────────────────────────────────────────────
-//  GOOGLE SIGN IN BUTTON
-// ─────────────────────────────────────────────
-function GoogleSignInButton() {
+// ─────────────────────── SignalBadge ───────────────────────
+// Functional exception to the monochrome rule.
+function SignalBadge({ signal, size = 'md' }: { signal: Signal; size?: 'sm' | 'md' | 'lg' }) {
+  const palette = {
+    BUY:  'text-emerald-300 bg-emerald-500/10 border-emerald-400/30',
+    SELL: 'text-rose-300    bg-rose-500/10    border-rose-400/30',
+    HOLD: 'text-amber-200   bg-amber-500/10   border-amber-400/30',
+  }[signal];
+  const sizing = {
+    sm: 'text-[10px] px-2    py-0.5 tracking-[0.18em]',
+    md: 'text-xs    px-2.5  py-1   tracking-[0.20em]',
+    lg: 'text-sm    px-3.5  py-1.5 tracking-[0.22em]',
+  }[size];
+  const Icon = signal === 'BUY' ? TrendingUp : signal === 'SELL' ? TrendingDown : Minus;
   return (
-    <button
-      onClick={() => { track.guestSignupClicked('hero_cta', 'google'); signIn('google', { callbackUrl: '/dashboard' }) }}
-      className="flex items-center justify-center gap-3 px-6 py-2.5 rounded-xl border border-surface-700 bg-surface-900/80 text-white text-sm font-medium hover:bg-surface-800 hover:border-surface-600 transition-all duration-200 w-full sm:w-auto"
+    <span
+      className={`inline-flex items-center gap-1.5 border uppercase tabular-nums ${palette} ${sizing}`}
+      style={{ fontFamily: ARCADIA, fontWeight: 480, borderRadius: 0 }}
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-      </svg>
-      Continue with Google
-    </button>
-  )
+      <Icon className="h-3 w-3" strokeWidth={2} />
+      {signal}
+    </span>
+  );
 }
 
-// ─────────────────────────────────────────────
-//  FLOATING MOCKUP
-// ─────────────────────────────────────────────
-function FloatingMockup() {
-  const chartBars = [38, 52, 44, 61, 70, 64, 78, 85]
-  const tilt = use3DTilt({ maxTilt: 10, perspective: 1000, scale: 1.02 })
+// ─────────────────────── Demo card ───────────────────────
+type Phase = 'typing' | 'analysing' | 'result';
 
-  return (
-    <div ref={tilt.ref} style={tilt.style} className="relative w-[300px] xl:w-[320px] select-none card-3d glow-3d shadow-3d" aria-hidden="true">
-      <div className="absolute -bottom-8 -right-8 w-[240px] card rounded-xl p-4 rotate-[-5deg] opacity-50 blur-[1.5px] pointer-events-none">
-        <p className="text-[10px] text-surface-500 uppercase tracking-widest font-semibold mb-3">Portfolio</p>
-        <div className="flex flex-col gap-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-surface-400">Total Value</span>
-            <span className="text-xs font-mono font-semibold text-white">₹2,40,000</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-surface-400">Day P&amp;L</span>
-            <span className="text-xs font-mono font-semibold text-emerald-400">+₹3,840</span>
-          </div>
-          <div className="h-px bg-surface-700/60 my-0.5" />
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-surface-400">AI Grade</span>
-            <span className="text-xs font-semibold text-brand-cyan">A</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="relative card rounded-xl overflow-hidden p-5 flex flex-col gap-4 shadow-2xl hero-entry-mockup animate-float">
-        <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-brand-blue to-brand-cyan" />
-        <div className="flex items-start justify-between gap-3 pt-1">
-          <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="font-display font-bold text-lg text-white leading-none">TCS</span>
-              <span className="text-[10px] text-surface-500 bg-surface-800/60 px-1.5 py-0.5 rounded font-medium">NSE</span>
-            </div>
-            <p className="text-[11px] text-surface-500">Tata Consultancy Services</p>
-          </div>
-          <div className="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0">
-            <span className="font-mono font-bold text-[17px] text-emerald-400 leading-none tabular-nums">85</span>
-            <span className="text-[8px] text-emerald-400/70 uppercase tracking-wide mt-0.5">score</span>
-          </div>
-        </div>
-        <div className="flex items-end justify-between">
-          <span className="font-mono font-bold text-[26px] text-white leading-none tabular-nums">₹3,842</span>
-          <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full">▲ +2.4%</span>
-        </div>
-        <div className="h-14 flex items-end gap-[3px] px-1">
-          {chartBars.map((h, i) => (
-            <div key={i} className="flex-1 rounded-sm bg-gradient-to-t from-brand-blue/60 to-brand-cyan/80" style={{ height: `${h}%` }} />
-          ))}
-        </div>
-        <div className="relative h-1.5 w-full rounded-full overflow-hidden bg-surface-800/50">
-          <div className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-brand-blue to-emerald-400" style={{ width: '85%' }} />
-        </div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {[
-            { label: 'Entry',  val: '₹3,780', cls: 'text-brand-cyan'  },
-            { label: 'Stop-L', val: '₹3,650', cls: 'text-rose-400'    },
-            { label: 'Target', val: '₹3,940', cls: 'text-emerald-400' },
-          ].map((t) => (
-            <div key={t.label} className="flex flex-col gap-0.5 rounded-lg px-2 py-2 bg-surface-800/40 border border-surface-700/30">
-              <span className="text-[8px] text-surface-500 uppercase tracking-wider font-medium">{t.label}</span>
-              <span className={cn('font-mono text-[11px] font-bold', t.cls)}>{t.val}</span>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center justify-between pt-2 border-t border-surface-800/50">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-            BUY Signal
-          </span>
-          <span className="text-[9px] text-surface-600 font-medium">AI · &lt;60s</span>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────
-//  STRIPE-STYLE SHOWCASE: Stock Analysis
-// ─────────────────────────────────────────────
-function StockAnalysisShowcase() {
-  return (
-    <div className="relative w-full">
-      <style>{`
-        @keyframes sq-dash{to{stroke-dashoffset:-24}}
-        @keyframes sq-fadeup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-        .sq-ann{animation:sq-fadeup .5s ease both}
-        .sq-ann:nth-child(2){animation-delay:.15s}
-        .sq-ann:nth-child(3){animation-delay:.3s}
-        .sq-ann:nth-child(4){animation-delay:.45s}
-        .sq-dash{stroke-dasharray:6 4;animation:sq-dash 1.2s linear infinite}
-      `}</style>
-
-      <div className="relative" style={{ height: 500 }}>
-        {/* Animated SVG connectors */}
-        <svg width="100%" height="500" viewBox="0 0 680 500" style={{ position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:5 }}>
-          <defs>
-            <marker id="sq1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M1 1L9 5L1 9" fill="none" stroke="#3b82f6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </marker>
-            <marker id="sq2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M1 1L9 5L1 9" fill="none" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </marker>
-            <marker id="sq3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M1 1L9 5L1 9" fill="none" stroke="#60a5fa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </marker>
-            <marker id="sq4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M1 1L9 5L1 9" fill="none" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </marker>
-          </defs>
-          <path className="sq-dash" d="M 178 130 C 230 130 250 175 280 195" fill="none" stroke="#3b82f6" strokeWidth="1.5" markerEnd="url(#sq1)"/>
-          <path className="sq-dash" d="M 178 340 C 230 330 252 295 280 285" fill="none" stroke="#10b981" strokeWidth="1.5" markerEnd="url(#sq2)" style={{ animationDelay:'0.4s' }}/>
-          <path className="sq-dash" d="M 502 150 C 455 150 435 195 412 215" fill="none" stroke="#60a5fa" strokeWidth="1.5" markerEnd="url(#sq3)" style={{ animationDelay:'0.2s' }}/>
-          <path className="sq-dash" d="M 502 340 C 455 335 432 305 412 292" fill="none" stroke="#f87171" strokeWidth="1.5" markerEnd="url(#sq4)" style={{ animationDelay:'0.6s' }}/>
-        </svg>
-
-        {/* Left annotation cards */}
-        <div className="sq-ann absolute left-0 top-20 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(59,130,246,.35)', zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">AI Score</p>
-          <p className="font-mono font-bold text-4xl leading-none" style={{ color:'#10b981' }}>88.00</p>
-          <div className="h-1 rounded-full mt-2 mb-2 overflow-hidden" style={{ background:'rgba(255,255,255,.08)' }}>
-            <div className="h-full rounded-full" style={{ width:'88%', background:'linear-gradient(90deg,#3b82f6,#10b981)' }}/>
-          </div>
-          <span className="text-[11px] font-semibold rounded-md px-2 py-0.5 border" style={{ color:'#10b981', borderColor:'rgba(16,185,129,.3)' }}>A+ Excellent</span>
-        </div>
-
-        <div className="sq-ann absolute left-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(16,185,129,.3)', top:280, zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Signal</p>
-          <div className="rounded-lg py-3 text-center mb-2 border" style={{ background:'rgba(16,185,129,.1)', borderColor:'rgba(16,185,129,.22)' }}>
-            <span className="font-mono font-bold text-2xl tracking-widest" style={{ color:'#10b981' }}>BUY</span>
-          </div>
-          <p className="text-[11px] text-slate-500">Swing · 1–4 weeks</p>
-        </div>
-
-        {/* Center screen mockup */}
-        <div className="absolute z-10 rounded-2xl overflow-hidden border" style={{ left:'50%', transform:'translateX(-50%)', top:20, width:252, background:'#070d1a', borderColor:'rgba(255,255,255,.1)', boxShadow:'0 24px 60px rgba(0,0,0,.7)' }}>
-          <div className="flex items-center gap-1.5 px-3 py-2 border-b" style={{ background:'#0d1525', borderColor:'rgba(255,255,255,.06)' }}>
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background:'#ef4444', opacity:.8 }}/>
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background:'#f59e0b', opacity:.8 }}/>
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background:'#10b981', opacity:.8 }}/>
-            <span className="font-mono ml-2 text-slate-600 truncate" style={{ fontSize:9 }}>sentiquant.org/stocks/RELIANCE</span>
-          </div>
-          <div className="p-4 flex flex-col gap-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-mono font-bold text-sm text-white">RELIANCE</p>
-                <p className="text-slate-500" style={{ fontSize:10 }}>Reliance Industries</p>
-              </div>
-              <span className="font-semibold rounded-full px-2 py-0.5 border" style={{ fontSize:9, color:'#10b981', background:'rgba(16,185,129,.12)', borderColor:'rgba(16,185,129,.2)' }}>● LIVE</span>
-            </div>
-            <div className="border-b pb-3" style={{ borderColor:'rgba(255,255,255,.06)' }}>
-              <p className="uppercase tracking-wider text-slate-600 mb-1" style={{ fontSize:9 }}>Current Price</p>
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono font-bold text-2xl text-white">₹2,843</span>
-                <span className="font-medium" style={{ fontSize:11, color:'#10b981' }}>+2.4%</span>
-              </div>
-            </div>
-            <div className="border-b pb-3" style={{ borderColor:'rgba(255,255,255,.06)' }}>
-              <div className="flex justify-between items-center mb-1">
-                <p className="uppercase tracking-wider text-slate-600" style={{ fontSize:9 }}>AI Score</p>
-                <span className="font-semibold" style={{ fontSize:9, color:'#10b981' }}>Strong</span>
-              </div>
-              <p className="font-mono font-bold leading-none mb-1.5" style={{ fontSize:20, color:'#10b981' }}>88.00<span className="text-slate-600" style={{ fontSize:11, fontWeight:400 }}>/100</span></p>
-              <div className="rounded-full overflow-hidden mb-1.5" style={{ height:3, background:'rgba(255,255,255,.06)' }}>
-                <div className="h-full rounded-full" style={{ width:'88%', background:'linear-gradient(90deg,#3b82f6,#10b981)' }}/>
-              </div>
-              <span className="rounded border px-1.5 py-0.5" style={{ fontSize:9, color:'#10b981', borderColor:'rgba(16,185,129,.22)' }}>A+ (EXCELLENT)</span>
-            </div>
-            <div className="rounded-lg py-3 text-center border" style={{ background:'rgba(16,185,129,.1)', borderColor:'rgba(16,185,129,.22)' }}>
-              <span className="font-mono font-bold tracking-widest" style={{ fontSize:18, color:'#10b981' }}>BUY</span>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {[
-                { label:'Entry', val:'₹2,843', c:'#60a5fa', bg:'rgba(59,130,246,.08)' },
-                { label:'T1',    val:'₹3,180', c:'#10b981', bg:'rgba(16,185,129,.08)' },
-                { label:'Stop',  val:'₹2,640', c:'#f87171', bg:'rgba(248,113,113,.08)' },
-              ].map(x => (
-                <div key={x.label} className="rounded-lg p-2 text-center" style={{ background:x.bg }}>
-                  <p className="uppercase text-slate-600 mb-1" style={{ fontSize:8 }}>{x.label}</p>
-                  <p className="font-mono font-bold" style={{ fontSize:10, color:x.c }}>{x.val}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right annotation cards */}
-        <div className="sq-ann absolute right-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(96,165,250,.3)', top:90, zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Entry zone</p>
-          <p className="font-mono font-bold text-2xl text-white">₹2,843</p>
-          <p className="text-slate-500 mt-1" style={{ fontSize:11 }}>+0.0% vs current</p>
-          <p className="text-slate-400 mt-1.5 leading-relaxed" style={{ fontSize:11 }}>Watch for dips before entering</p>
-        </div>
-
-        <div className="sq-ann absolute right-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(248,113,113,.3)', top:285, zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Stop loss</p>
-          <p className="font-mono font-bold text-2xl" style={{ color:'#f87171' }}>₹2,640</p>
-          <div className="flex items-center gap-1.5 mt-1.5">
-            <div className="w-2 h-2 rounded-full" style={{ background:'rgba(248,113,113,.7)' }}/>
-            <p className="text-slate-400" style={{ fontSize:11 }}>−7.1% max loss</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom pill */}
-      <div className="flex justify-center mt-6">
-        <div className="inline-flex items-center rounded-full overflow-hidden border" style={{ background:'#0f172a', borderColor:'rgba(255,255,255,.08)' }}>
-          {[
-            { dot:'#10b981', label:'Upside', val:'+11.8%', valC:'#f1f5f9' },
-            { dot:'#f87171', label:'Downside', val:'−7.1%', valC:'#f1f5f9' },
-            { dot:null, label:'Risk:Reward', val:'1 : 1.66', valC:'#fbbf24' },
-          ].map((x, i) => (
-            <div key={x.label} className="flex items-center gap-2 px-5 py-2.5" style={{ borderRight: i < 2 ? '1px solid rgba(255,255,255,.06)' : undefined }}>
-              {x.dot && <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background:x.dot }}/>}
-              <span className="text-xs text-slate-500">{x.label}</span>
-              <span className="font-mono text-sm font-medium" style={{ color:x.valC }}>{x.val}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────
-//  STRIPE-STYLE SHOWCASE: Portfolio
-// ─────────────────────────────────────────────
-const PORT_ROWS = [
-  { sym:'IOC',       co:'Indian Oil',   alloc:'10.0%', stop:'₹136', t1:'₹149' },
-  { sym:'AMBUJACEM', co:'Ambuja',       alloc:'9.8%',  stop:'₹430', t1:'₹465' },
-  { sym:'BPCL',      co:'Bharat Petro', alloc:'9.7%',  stop:'₹290', t1:'₹318' },
-  { sym:'JUSTDIAL',  co:'Just Dial',    alloc:'9.6%',  stop:'₹514', t1:'₹550' },
-  { sym:'AUBANK',    co:'AU Small',     alloc:'9.1%',  stop:'₹974', t1:'₹1,049' },
-] as const
-
-const ALLOC_COLORS = ['#3b82f6','#06b6d4','#10b981','#8b5cf6','#f59e0b','#f87171','#ec4899','#14b8a6','#84cc16','#334155']
-
-function PortfolioShowcase() {
-  return (
-    <div className="relative w-full">
-      <div className="relative" style={{ height: 520 }}>
-        {/* Animated SVG connectors */}
-        <svg width="100%" height="520" viewBox="0 0 680 520" style={{ position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:5 }}>
-          <defs>
-            <marker id="pq1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M1 1L9 5L1 9" fill="none" stroke="#06b6d4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </marker>
-            <marker id="pq2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M1 1L9 5L1 9" fill="none" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </marker>
-            <marker id="pq3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M1 1L9 5L1 9" fill="none" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </marker>
-            <marker id="pq4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-              <path d="M1 1L9 5L1 9" fill="none" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </marker>
-          </defs>
-          <path className="sq-dash" d="M 178 150 C 230 150 252 185 280 205" fill="none" stroke="#06b6d4" strokeWidth="1.5" markerEnd="url(#pq1)"/>
-          <path className="sq-dash" d="M 178 360 C 232 348 252 310 280 298" fill="none" stroke="#10b981" strokeWidth="1.5" markerEnd="url(#pq2)" style={{ animationDelay:'0.4s' }}/>
-          <path className="sq-dash" d="M 502 168 C 455 168 434 205 412 222" fill="none" stroke="#f87171" strokeWidth="1.5" markerEnd="url(#pq3)" style={{ animationDelay:'0.2s' }}/>
-          <path className="sq-dash" d="M 502 358 C 454 345 432 315 412 300" fill="none" stroke="#10b981" strokeWidth="1.5" markerEnd="url(#pq4)" style={{ animationDelay:'0.6s' }}/>
-        </svg>
-
-        {/* Left annotation cards */}
-        <div className="sq-ann absolute left-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(6,182,212,.35)', top:90, zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Deployed</p>
-          <p className="font-mono font-bold leading-none" style={{ fontSize:28, color:'#06b6d4' }}>₹97.3K</p>
-          <p className="text-slate-500 mt-1" style={{ fontSize:11 }}>of ₹1L · 97.3%</p>
-          <div className="rounded-full overflow-hidden mt-2" style={{ height:3, background:'rgba(255,255,255,.08)' }}>
-            <div className="h-full rounded-full" style={{ width:'97%', background:'#06b6d4' }}/>
-          </div>
-        </div>
-
-        <div className="sq-ann absolute left-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(16,185,129,.3)', top:295, zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Avg AI score</p>
-          <p className="font-mono font-bold leading-none" style={{ fontSize:32, color:'#10b981' }}>94<span className="text-slate-600" style={{ fontSize:14, fontWeight:400 }}>/100</span></p>
-          <span className="inline-block rounded border px-2 py-0.5 mt-2" style={{ fontSize:11, color:'#10b981', borderColor:'rgba(16,185,129,.22)' }}>10 positions</span>
-        </div>
-
-        {/* Center screen */}
-        <div className="absolute z-10 rounded-2xl overflow-hidden border" style={{ left:'50%', transform:'translateX(-50%)', top:10, width:252, background:'#070d1a', borderColor:'rgba(255,255,255,.1)', boxShadow:'0 24px 60px rgba(0,0,0,.7)' }}>
-          <div className="flex items-center gap-1.5 px-3 py-2 border-b" style={{ background:'#0d1525', borderColor:'rgba(255,255,255,.06)' }}>
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background:'#ef4444', opacity:.8 }}/>
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background:'#f59e0b', opacity:.8 }}/>
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background:'#10b981', opacity:.8 }}/>
-            <span className="font-mono ml-2 text-slate-600 truncate" style={{ fontSize:9 }}>sentiquant.org/portfolio</span>
-          </div>
-          <div className="p-4 flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg p-2.5" style={{ background:'rgba(6,182,212,.08)' }}>
-                <p className="uppercase tracking-wider text-slate-600 mb-1" style={{ fontSize:8 }}>Allocated</p>
-                <p className="font-mono font-bold text-sm" style={{ color:'#06b6d4' }}>₹97.3K</p>
-                <p className="text-slate-500" style={{ fontSize:8 }}>97.3% deployed</p>
-              </div>
-              <div className="rounded-lg p-2.5" style={{ background:'rgba(16,185,129,.08)' }}>
-                <p className="uppercase tracking-wider text-slate-600 mb-1" style={{ fontSize:8 }}>Avg score</p>
-                <p className="font-mono font-bold text-sm" style={{ color:'#10b981' }}>94/100</p>
-                <p className="text-slate-500" style={{ fontSize:8 }}>10 positions</p>
-              </div>
-            </div>
-            <div>
-              <p className="uppercase tracking-wider text-slate-600 mb-1.5" style={{ fontSize:8 }}>Allocation</p>
-              <div className="flex rounded-full overflow-hidden gap-px" style={{ height:6 }}>
-                {ALLOC_COLORS.map((c, i) => (
-                  <div key={i} style={{ flex: 2 - i * 0.1, background: c }}/>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="grid grid-cols-4 gap-1 pb-1.5 border-b mb-1.5" style={{ borderColor:'rgba(255,255,255,.06)' }}>
-                {['Stock','Alloc','Stop','T1'].map((h,i) => (
-                  <p key={h} className="uppercase tracking-wider text-slate-600" style={{ fontSize:8, textAlign: i > 0 ? 'right' : 'left' }}>{h}</p>
-                ))}
-              </div>
-              {PORT_ROWS.map(r => (
-                <div key={r.sym} className="grid grid-cols-4 gap-1 py-1.5 border-b last:border-0" style={{ borderColor:'rgba(255,255,255,.04)' }}>
-                  <div>
-                    <p className="font-mono font-bold text-white" style={{ fontSize:10 }}>{r.sym}</p>
-                    <p className="text-slate-600" style={{ fontSize:8 }}>{r.co}</p>
-                  </div>
-                  <p className="font-mono" style={{ fontSize:10, color:'#06b6d4', textAlign:'right' }}>{r.alloc}</p>
-                  <p className="font-mono" style={{ fontSize:10, color:'#f87171', textAlign:'right' }}>{r.stop}</p>
-                  <p className="font-mono" style={{ fontSize:10, color:'#10b981', textAlign:'right' }}>{r.t1}</p>
-                </div>
-              ))}
-              <p className="text-center text-slate-600 mt-2" style={{ fontSize:9 }}>+ 5 more positions</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Right annotation cards */}
-        <div className="sq-ann absolute right-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(248,113,113,.3)', top:100, zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Stop loss</p>
-          <p className="font-mono font-bold text-2xl" style={{ color:'#f87171' }}>Per stock</p>
-          <p className="text-slate-400 mt-2 leading-relaxed" style={{ fontSize:11 }}>AI-calculated for each. Limits max loss.</p>
-        </div>
-
-        <div className="sq-ann absolute right-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(16,185,129,.3)', top:295, zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Targets (IOC)</p>
-          {(['T1','T2','T3'] as const).map((t, i) => (
-            <div key={t} className="flex justify-between items-center py-1.5 border-b last:border-0" style={{ borderColor:'rgba(255,255,255,.05)' }}>
-              <span className="text-slate-500" style={{ fontSize:11 }}>{t}</span>
-              <span className="font-mono font-semibold" style={{ fontSize:13, color:'#10b981' }}>{['₹149','₹158','₹167'][i]}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Bottom pill */}
-      <div className="flex justify-center mt-6">
-        <div className="inline-flex items-center rounded-full overflow-hidden border" style={{ background:'#0f172a', borderColor:'rgba(255,255,255,.08)' }}>
-          {[
-            { dot:'#06b6d4', label:'Budget', val:'₹10K–₹10L' },
-            { dot:'#10b981', label:'240+ stocks scanned', val:'' },
-            { dot:'#8b5cf6', label:'Free to generate', val:'' },
-          ].map((x, i) => (
-            <div key={x.label} className="flex items-center gap-2 px-5 py-2.5" style={{ borderRight: i < 2 ? '1px solid rgba(255,255,255,.06)' : undefined }}>
-              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background:x.dot }}/>
-              <span className="text-slate-500 text-xs">{x.label}</span>
-              {x.val && <span className="font-mono font-medium text-sm text-white">{x.val}</span>}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────
-//  HOME CLIENT
-// ─────────────────────────────────────────────
-export function HomeClient() {
-
-  const magneticCta = useMagneticHover<HTMLAnchorElement>(0.22)
-
-  const { ref: statsRef,    inView: statsInView    } = useInView<HTMLDivElement>(0.5)
-  const { ref: howRef,      inView: howInView      } = useInView<HTMLDivElement>(0.05)
-  const { ref: showcaseRef, inView: showcaseInView } = useInView<HTMLDivElement>(0.05)
-  const { ref: seoRef,      inView: seoInView      } = useInView<HTMLDivElement>(0.05)
-  const { ref: faqRef,      inView: faqInView      } = useInView<HTMLDivElement>(0.05)
-  const { ref: ctaRef,      inView: ctaInView      } = useInView<HTMLDivElement>(0.2)
-
-  const counter2 = useCountUp(250, 1800)
-  const counter3 = useCountUp(60,  1500)
+function useDemoCycle() {
+  const [index, setIndex] = useState(0);
+  const [typed, setTyped] = useState('');
+  const [phase, setPhase] = useState<Phase>('typing');
 
   useEffect(() => {
-    if (statsInView) { counter2.run(); counter3.run() }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statsInView])
+    let cancelled = false;
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+    const wait = (ms: number) =>
+      new Promise<void>((res) => {
+        const id = setTimeout(() => res(), ms);
+        timeouts.push(id);
+      });
+
+    const run = async () => {
+      const stock = DEMO_STOCKS[index];
+      const symbol = stock.symbol;
+      setPhase('typing');
+      setTyped('');
+      for (let i = 1; i <= symbol.length; i++) {
+        await wait(85);
+        if (cancelled) return;
+        setTyped(symbol.slice(0, i));
+      }
+      await wait(380);
+      if (cancelled) return;
+      setPhase('analysing');
+      await wait(1100);
+      if (cancelled) return;
+      setPhase('result');
+      await wait(3800);
+      if (cancelled) return;
+      setIndex((i) => (i + 1) % DEMO_STOCKS.length);
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+      timeouts.forEach(clearTimeout);
+    };
+  }, [index]);
+
+  return { stock: DEMO_STOCKS[index], typed, phase };
+}
+
+function AnalysisDemoCard() {
+  const { stock, typed, phase } = useDemoCycle();
 
   return (
-    <div className="flex flex-col overflow-hidden">
-
-      {/* ── HERO ── */}
-      <section className="relative min-h-[92vh] flex items-center px-4 sm:px-6 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top, rgba(59,130,246,0.22), transparent 60%), radial-gradient(ellipse at bottom, rgba(6,182,212,0.12), transparent 70%)' }} />
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[-150px] left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-brand-blue opacity-[0.20] blur-[140px]" />
-          <div className="absolute bottom-[-200px] left-1/2 -translate-x-1/2 w-[900px] h-[800px] bg-brand-cyan opacity-[0.09] blur-[160px]" />
-        </div>
-        <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-
-        <div className="relative z-10 max-w-6xl mx-auto w-full py-20 sm:py-24">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-            <div className="flex flex-col items-center lg:items-start gap-7 text-center lg:text-left">
-              <div className="hero-entry-1 inline-flex px-4 py-1.5 rounded-full border border-brand-cyan/20 bg-brand-blue/10 text-brand-cyan text-xs font-medium tracking-wide backdrop-blur-md">
-                AI-powered · NSE + BSE · Real-time
-              </div>
-              <h1 className="hero-entry-2 font-display text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight">
-                <span className="text-white">Make smarter stock</span>
-                <br />
-                <span className="bg-gradient-to-r from-brand-blue to-brand-cyan bg-clip-text text-transparent">decisions with AI</span>
-              </h1>
-              <p className="hero-entry-3 text-lg text-surface-400 max-w-xl leading-relaxed">
-                Instant AI-powered analysis of Indian stocks — signals, targets, and risk insights in under 60 seconds.
-              </p>
-              <div className="hero-entry-4 flex flex-col sm:flex-row gap-4">
-                <Link ref={magneticCta.ref} style={magneticCta.style} href="/stocks" className="px-8 py-3 rounded-xl bg-gradient-to-r from-brand-blue to-brand-cyan text-white font-semibold text-sm hover:opacity-90 hover:shadow-[0_0_28px_rgba(59,130,246,0.40)] transition-all duration-200 shadow-[0_0_20px_rgba(59,130,246,0.20)]">
-                  Analyze a stock
-                </Link>
-                <Link href="/dashboard" className="px-8 py-3 rounded-xl border border-surface-700 text-white font-medium text-sm hover:border-white hover:bg-white/5 transition-all duration-200">
-                  View dashboard →
-                </Link>
-              </div>
-              <div className="hero-entry-5 flex flex-col items-center lg:items-start gap-2 w-full sm:w-auto">
-                <GoogleSignInButton />
-                <p className="text-xs text-surface-600">No credit card required · Free forever on Starter plan</p>
-              </div>
-            </div>
-            <div className="hidden lg:flex items-center justify-center pl-4 xl:pl-8">
-              <FloatingMockup />
-            </div>
+    <div className="relative w-full max-w-[820px] mx-auto">
+      <div
+        className="relative overflow-hidden border"
+        style={{ backgroundColor: C.midnightSlate, borderColor: `${C.lead}55`, borderRadius: 0 }}
+      >
+        {/* Terminal header */}
+        <div
+          className="flex items-center justify-between px-6 py-3 border-b"
+          style={{ backgroundColor: C.deepSpace, borderColor: `${C.lead}33` }}
+        >
+          <div className="flex items-center gap-3">
+            <span
+              className="text-[12px] uppercase"
+              style={{ fontFamily: ARCADIA, color: C.silver, letterSpacing: '0.18em', fontWeight: 400 }}
+            >
+              SentiQuant · Live Engine
+            </span>
           </div>
+          <span
+            className="flex items-center gap-2 text-[11px]"
+            style={{ fontFamily: ARCADIA, color: C.silver, letterSpacing: '0.18em' }}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            ONLINE
+          </span>
         </div>
-      </section>
 
-      {/* ── STATS BAR ── */}
-      <section className="relative border-y border-surface-800 bg-surface-900/40 overflow-hidden">
-        <div ref={statsRef} className="relative max-w-5xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-2 sm:grid-cols-3 gap-8">
-          {[
-            { display: statsInView ? `${counter2.count}+`   : '250+',  label: 'NSE & BSE stocks covered' },
-            { display: statsInView ? `< ${counter3.count}s` : '< 60s', label: 'To a full AI analysis' },
-            { display: 'A–D', label: 'Grade assigned every stock' },
-          ].map(({ display, label }, i) => (
-            <div key={label} className={cn('group relative flex flex-col items-center gap-2 text-center transition-all duration-300 scroll-reveal', statsInView && 'in-view', STAGGER[i])}>
-              <span className="font-display font-bold text-3xl text-white tabular-nums group-hover:scale-105 transition-transform">{display}</span>
-              <span className="text-xs text-surface-500 group-hover:text-surface-300 transition-colors">{label}</span>
-              {i !== 2 && <div className="hidden sm:block absolute right-0 top-1/2 -translate-y-1/2 w-px h-10 bg-surface-800" />}
+        {/* Body */}
+        <div className="px-8 py-9 min-h-[380px]">
+          {/* Prompt */}
+          <div
+            className="flex items-baseline gap-2.5 text-[15px]"
+            style={{ fontFamily: ARCADIA, color: C.silver, fontWeight: 400 }}
+          >
+            <span style={{ color: C.lead }}>{'>'}</span>
+            <span>analyse</span>
+            <span style={{ color: C.starlight }} className="tabular-nums">
+              {typed}
+              {phase === 'typing' && (
+                <span
+                  className="inline-block w-[8px] h-[15px] ml-0.5 align-middle animate-pulse"
+                  style={{ backgroundColor: C.starlight }}
+                />
+              )}
+            </span>
+          </div>
+
+          {phase === 'analysing' && (
+            <div
+              className="mt-7 flex items-center gap-2 text-[14px] sq-fade-up"
+              style={{ fontFamily: ARCADIA, color: C.silver }}
+            >
+              <span style={{ color: C.lead }}>{'>'}</span>
+              <span>scoring four pillars</span>
+              <span className="ml-2 inline-flex gap-1">
+                <span className="h-1.5 w-1.5 rounded-full animate-bounce [animation-delay:0ms]"   style={{ backgroundColor: C.starlight }} />
+                <span className="h-1.5 w-1.5 rounded-full animate-bounce [animation-delay:150ms]" style={{ backgroundColor: C.starlight }} />
+                <span className="h-1.5 w-1.5 rounded-full animate-bounce [animation-delay:300ms]" style={{ backgroundColor: C.starlight }} />
+              </span>
             </div>
+          )}
+
+          {phase === 'result' && (
+            <div className="mt-7 space-y-6 sq-fade-up">
+              <div className="flex items-start justify-between gap-6">
+                <div>
+                  <div
+                    className="text-[28px] tabular-nums"
+                    style={{ fontFamily: ARCADIA_DISPLAY, color: C.starlight, fontWeight: 480, lineHeight: 1.1 }}
+                  >
+                    {stock.symbol}
+                  </div>
+                  <div
+                    className="mt-1 text-[13px]"
+                    style={{ fontFamily: ARCADIA, color: C.silver, fontWeight: 400 }}
+                  >
+                    {stock.name}
+                  </div>
+                </div>
+                <SignalBadge signal={stock.signal} size="lg" />
+              </div>
+
+              <div
+                className="flex items-end justify-between py-4 border-y"
+                style={{ borderColor: `${C.lead}33` }}
+              >
+                <div>
+                  <div
+                    className="text-[11px] uppercase"
+                    style={{ fontFamily: ARCADIA, color: C.silver, letterSpacing: '0.18em' }}
+                  >
+                    CMP
+                  </div>
+                  <div
+                    className="mt-1 text-[32px] tabular-nums"
+                    style={{ fontFamily: ARCADIA_DISPLAY, color: C.starlight, fontWeight: 360, lineHeight: 1.1 }}
+                  >
+                    ₹{stock.cmp.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+                <div
+                  className={`text-[14px] tabular-nums ${stock.change >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}
+                  style={{ fontFamily: ARCADIA, fontWeight: 480 }}
+                >
+                  {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)}%
+                </div>
+              </div>
+
+              <div>
+                <div
+                  className="text-[11px] uppercase mb-3"
+                  style={{ fontFamily: ARCADIA, color: C.silver, letterSpacing: '0.18em' }}
+                >
+                  Targets
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {(['t1', 't2', 't3'] as const).map((t, i) => (
+                    <div
+                      key={t}
+                      className="px-4 py-3 border"
+                      style={{ backgroundColor: C.deepSpace, borderColor: `${C.lead}33`, borderRadius: 0 }}
+                    >
+                      <div
+                        className="text-[10px] uppercase"
+                        style={{ fontFamily: ARCADIA, color: C.silver, letterSpacing: '0.18em' }}
+                      >
+                        T{i + 1}
+                      </div>
+                      <div
+                        className="mt-1 text-[16px] tabular-nums"
+                        style={{ fontFamily: ARCADIA, color: C.starlight, fontWeight: 480 }}
+                      >
+                        ₹{(stock as unknown as Record<string, number>)[t].toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div
+                className="flex flex-wrap gap-x-6 gap-y-2 text-[12px]"
+                style={{ fontFamily: ARCADIA, color: C.silver }}
+              >
+                <span>
+                  RSI <span style={{ color: C.starlight }} className="tabular-nums">{stock.rsi}</span>
+                </span>
+                <span>
+                  MACD{' '}
+                  <span
+                    style={{
+                      color:
+                        stock.macd === 'Bullish' ? '#6ee7b7' :
+                        stock.macd === 'Bearish' ? '#fda4af' :
+                                                   C.starlight,
+                    }}
+                  >
+                    {stock.macd}
+                  </span>
+                </span>
+                <span>
+                  Sentiment{' '}
+                  <span
+                    className="tabular-nums"
+                    style={{ color: stock.sentiment >= 0 ? '#6ee7b7' : '#fda4af' }}
+                  >
+                    {stock.sentiment >= 0 ? '+' : ''}{stock.sentiment.toFixed(2)}
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Cycle progress strip */}
+        <div className="flex gap-1 px-6 pb-5">
+          {DEMO_STOCKS.map((s, i) => (
+            <span
+              key={s.symbol}
+              className="h-px flex-1 transition-colors duration-300"
+              style={{
+                backgroundColor:
+                  DEMO_STOCKS[i].symbol === stock.symbol ? C.starlight : `${C.lead}55`,
+              }}
+            />
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────── Main ───────────────────────
+export default function HomeClient() {
+  const { status } = useSession();
+  const router = useRouter();
+  const isAuth = status === 'authenticated';
+
+  const [searchValue, setSearchValue] = useState('');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const sym = searchValue.trim().toUpperCase();
+    if (!sym) return;
+    router.push(`/stocks/${sym}`);
+  };
+
+  return (
+    <main
+      className="min-h-screen antialiased"
+      style={{
+        backgroundColor: C.midnightSlate,
+        color: C.starlight,
+        fontFamily: ARCADIA,
+      }}
+    >
+      {/* Global keyframes + selection */}
+      <style>{`
+        @keyframes sq-fade-up {
+          0%   { opacity: 0; transform: translateY(10px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .sq-fade-up { animation: sq-fade-up 420ms ease-out both; }
+        ::selection { background: ${C.mercuryBlue}; color: ${C.pureWhite}; }
+      `}</style>
+
+      {/* ── 01 · NAV ───────────────────────────────────────── */}
+      <header
+        className="sticky top-0 z-40 backdrop-blur-xl"
+        style={{
+          backgroundColor: `${C.midnightSlate}cc`,
+          borderBottom: `1px solid ${C.lead}33`,
+        }}
+      >
+        <div className="max-w-[1200px] mx-auto px-6 sm:px-8 h-[72px] flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div
+              className="h-7 w-7 grid place-items-center"
+              style={{ backgroundColor: C.mercuryBlue, borderRadius: 4 }}
+            >
+              <span
+                style={{ fontFamily: ARCADIA_DISPLAY, color: C.pureWhite, fontWeight: 530, fontSize: 14 }}
+              >
+                S
+              </span>
+            </div>
+            <span
+              className="text-[17px]"
+              style={{ fontFamily: ARCADIA_DISPLAY, fontWeight: 480, letterSpacing: '0.005em' }}
+            >
+              SentiQuant
+            </span>
+          </Link>
+
+          <nav className="hidden md:flex items-center gap-9">
+            {[
+              { label: 'Home',      href: '/' },
+              { label: 'Stocks',    href: '/stocks' },
+              { label: 'Portfolio', href: '/portfolio' },
+              { label: 'Pricing',   href: '/pricing' },
+            ].map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="text-[15px] transition-opacity hover:opacity-80"
+                style={{ fontFamily: ARCADIA, color: C.starlight, fontWeight: 400 }}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="hidden md:flex items-center gap-2">
+            {isAuth ? (
+              <>
+                <Link
+                  href="/stocks"
+                  className="text-[14px] px-4 py-2 transition-opacity hover:opacity-80"
+                  style={{ fontFamily: ARCADIA, color: C.starlight, fontWeight: 400 }}
+                >
+                  Open app
+                </Link>
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="text-[14px] px-5 py-2 transition-colors"
+                  style={{
+                    fontFamily: ARCADIA,
+                    fontWeight: 420,
+                    color: C.starlight,
+                    backgroundColor: `${C.ghostBlue}33`,
+                    borderRadius: 40,
+                  }}
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/auth/signin"
+                  className="text-[14px] px-4 py-2 transition-opacity hover:opacity-80"
+                  style={{ fontFamily: ARCADIA, color: C.starlight, fontWeight: 400 }}
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/auth/signin"
+                  className="text-[14px] px-5 py-2 transition-colors hover:brightness-110"
+                  style={{
+                    fontFamily: ARCADIA,
+                    fontWeight: 420,
+                    color: C.starlight,
+                    backgroundColor: `${C.ghostBlue}33`,
+                    borderRadius: 40,
+                  }}
+                >
+                  Get started
+                </Link>
+              </>
+            )}
+          </div>
+
+          <button
+            className="md:hidden p-2"
+            onClick={() => setMobileNavOpen((v) => !v)}
+            aria-label="Toggle menu"
+            style={{ color: C.starlight }}
+          >
+            {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+
+        {mobileNavOpen && (
+          <div
+            className="md:hidden px-6 py-5 space-y-3"
+            style={{ backgroundColor: C.midnightSlate, borderTop: `1px solid ${C.lead}33` }}
+          >
+            {['Home', 'Stocks', 'Portfolio', 'Pricing'].map((label) => {
+              const href = label === 'Home' ? '/' : `/${label.toLowerCase()}`;
+              return (
+                <Link
+                  key={label}
+                  href={href}
+                  onClick={() => setMobileNavOpen(false)}
+                  className="block text-[15px]"
+                  style={{ fontFamily: ARCADIA, color: C.starlight }}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+            <div
+              className="pt-4 flex gap-2"
+              style={{ borderTop: `1px solid ${C.lead}33` }}
+            >
+              {isAuth ? (
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="text-[14px] px-5 py-2 flex-1"
+                  style={{
+                    fontFamily: ARCADIA,
+                    color: C.starlight,
+                    backgroundColor: `${C.ghostBlue}33`,
+                    borderRadius: 40,
+                  }}
+                >
+                  Sign out
+                </button>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/signin"
+                    className="text-[14px] px-4 py-2 flex-1"
+                    style={{ fontFamily: ARCADIA, color: C.starlight }}
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/auth/signin"
+                    className="text-[14px] px-5 py-2 flex-1 text-center"
+                    style={{
+                      fontFamily: ARCADIA,
+                      color: C.starlight,
+                      backgroundColor: `${C.ghostBlue}33`,
+                      borderRadius: 40,
+                    }}
+                  >
+                    Get started
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* ── 02 · HERO ──────────────────────────────────────── */}
+      <section className="relative overflow-hidden">
+        {/* Atmosphere */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: `radial-gradient(${C.starlight} 1px, transparent 1px)`,
+              backgroundSize: '32px 32px',
+            }}
+          />
+          <div
+            className="absolute top-[30%] left-1/2 -translate-x-1/2 h-[500px] w-[900px] rounded-full blur-[140px] opacity-30"
+            style={{ backgroundColor: C.mercuryBlue }}
+          />
+        </div>
+
+        <div className="relative max-w-[1200px] mx-auto px-6 sm:px-8 pt-28 sm:pt-40 pb-24 sm:pb-32">
+          <div className="text-center max-w-[860px] mx-auto">
+            <div
+              className="inline-block text-[12px] uppercase mb-10"
+              style={{ fontFamily: ARCADIA, color: C.silver, letterSpacing: '0.24em', fontWeight: 400 }}
+            >
+              AI Signal Engine · NSE
+            </div>
+            <h1
+              className="text-[44px] sm:text-[56px] lg:text-[65px]"
+              style={{
+                fontFamily: ARCADIA_DISPLAY,
+                color: C.starlight,
+                fontWeight: 360,
+                lineHeight: 1.1,
+                letterSpacing: '0.005em',
+              }}
+            >
+              Every stock,
+              <br />
+              read properly.
+            </h1>
+            <p
+              className="mt-8 max-w-[560px] mx-auto text-[18px] sm:text-[21px]"
+              style={{
+                fontFamily: ARCADIA,
+                color: C.silver,
+                fontWeight: 400,
+                lineHeight: 1.45,
+                letterSpacing: '0.005em',
+              }}
+            >
+              SentiQuant reads news, charts, fundamentals and risk for every NSE-listed stock — then hands you a single signal with target prices.
+            </p>
+
+            {/* Joined input + button */}
+            <form onSubmit={handleSearch} className="mt-12 max-w-[520px] mx-auto">
+              <div className="flex">
+                <input
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  placeholder="Try a ticker — RELIANCE, TCS, INFY"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  className="flex-1 min-w-0 outline-none px-6 py-4 text-[15px] transition-colors focus:bg-white/[0.02]"
+                  style={{
+                    fontFamily: ARCADIA,
+                    color: C.starlight,
+                    backgroundColor: 'transparent',
+                    border: `1px solid ${C.lead}`,
+                    borderRight: 'none',
+                    borderTopLeftRadius: 32,
+                    borderBottomLeftRadius: 32,
+                    borderTopRightRadius: 0,
+                    borderBottomRightRadius: 0,
+                  }}
+                />
+                <button
+                  type="submit"
+                  className="px-7 py-4 text-[15px] inline-flex items-center gap-2 transition-all hover:brightness-110 active:brightness-95"
+                  style={{
+                    fontFamily: ARCADIA,
+                    fontWeight: 480,
+                    color: C.pureWhite,
+                    backgroundColor: C.mercuryBlue,
+                    border: 'none',
+                    borderTopRightRadius: 32,
+                    borderBottomRightRadius: 32,
+                    borderTopLeftRadius: 0,
+                    borderBottomLeftRadius: 0,
+                  }}
+                >
+                  Analyse
+                  <ArrowRight className="h-4 w-4" strokeWidth={2} />
+                </button>
+              </div>
+              <div
+                className="mt-5 text-[13px]"
+                style={{ fontFamily: ARCADIA, color: C.silver, letterSpacing: '0.02em' }}
+              >
+                One free analysis a day · No signup required
+              </div>
+            </form>
+          </div>
+
+          {/* Animated demo */}
+          <div className="mt-24 sm:mt-28">
+            <AnalysisDemoCard />
+          </div>
+        </div>
       </section>
 
-      {/* ── HOW IT WORKS ── */}
-      <section className="border-t border-surface-800 bg-surface-900/30 py-20 sm:py-28 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto flex flex-col gap-14">
-          <div className={cn('flex flex-col items-center gap-4 text-center scroll-reveal', howInView && 'in-view')}>
-            <span className="text-xs font-semibold text-brand-cyan uppercase tracking-widest">How it works</span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-white">Stock prediction AI — in 3 simple steps</h2>
-            <p className="text-sm text-surface-400 max-w-sm leading-relaxed">No learning curve. No jargon. Just enter a stock and get your answer.</p>
+      {/* ── 03 · METHODOLOGY ─────────────────────────────── */}
+      <section style={{ borderTop: `1px solid ${C.lead}22` }}>
+        <div className="max-w-[1200px] mx-auto px-6 sm:px-8 py-24 sm:py-32">
+          <div className="max-w-[720px] mb-20">
+            <div
+              className="text-[12px] uppercase mb-8"
+              style={{ fontFamily: ARCADIA, color: C.silver, letterSpacing: '0.24em' }}
+            >
+              How it works
+            </div>
+            <h2
+              className="text-[40px] sm:text-[49px]"
+              style={{
+                fontFamily: ARCADIA_DISPLAY,
+                color: C.starlight,
+                fontWeight: 360,
+                lineHeight: 1.15,
+              }}
+            >
+              Four pillars,
+              <br />
+              one verdict.
+            </h2>
+            <p
+              className="mt-7 max-w-[560px] text-[17px]"
+              style={{ fontFamily: ARCADIA, color: C.silver, lineHeight: 1.5 }}
+            >
+              We don&apos;t trust any single indicator. Each stock is scored across four independent dimensions — then the engine weighs them by the current market regime and produces the signal you see.
+            </p>
           </div>
-          <div ref={howRef} className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {HOW_IT_WORKS.map((step, i) => (
-              <div key={step.step} className={cn('group flex flex-col gap-5 scroll-reveal', howInView && 'in-view', STAGGER[i])}>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl border border-surface-700 bg-surface-900 flex items-center justify-center text-brand-cyan group-hover:border-brand-cyan/30 group-hover:bg-brand-cyan/5 transition-all duration-300">
-                    {step.icon}
-                  </div>
-                  {i !== HOW_IT_WORKS.length - 1 && <div className="hidden sm:block flex-1 h-px bg-gradient-to-r from-brand-blue/20 to-brand-cyan/5" />}
+
+          <div>
+            {METHODOLOGY.map((item, i) => (
+              <div
+                key={item.label}
+                className="group flex items-start gap-8 sm:gap-12 py-8 transition-opacity hover:opacity-80"
+                style={{
+                  borderBottom: `1px solid ${C.lead}`,
+                  borderTop: i === 0 ? `1px solid ${C.lead}` : 'none',
+                }}
+              >
+                <div
+                  className="text-[14px] mt-1 tabular-nums"
+                  style={{ fontFamily: ARCADIA, color: C.silver, letterSpacing: '0.02em' }}
+                >
+                  {item.num}
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-xs font-bold text-surface-600 tracking-widest">{step.step}</span>
-                  <h3 className="font-semibold text-sm text-white group-hover:text-brand-cyan transition-colors duration-200">{step.title}</h3>
-                  <p className="text-xs text-surface-400 leading-relaxed">{step.body}</p>
+                <div className="flex-1 grid sm:grid-cols-[1fr_1.5fr] gap-4 sm:gap-12">
+                  <h3
+                    className="text-[24px] sm:text-[28px]"
+                    style={{
+                      fontFamily: ARCADIA_DISPLAY,
+                      color: C.starlight,
+                      fontWeight: 480,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {item.label}
+                  </h3>
+                  <p
+                    className="text-[16px]"
+                    style={{ fontFamily: ARCADIA, color: C.silver, lineHeight: 1.5 }}
+                  >
+                    {item.desc}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
-          <div className={cn('flex justify-center scroll-reveal', howInView && 'in-view', 'delay-300')}>
-            <Link href="/stocks" className="px-7 py-3 rounded-xl bg-gradient-to-r from-brand-blue to-brand-cyan text-white font-semibold text-sm hover:opacity-90 transition-all duration-200">
-              Try it now — it&apos;s free
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* ── PRODUCT SHOWCASE: Stock Analysis ── */}
-      <section ref={showcaseRef} className="border-t border-surface-800 py-20 sm:py-28 px-4 sm:px-6 overflow-hidden">
-        <div className="max-w-5xl mx-auto flex flex-col gap-10">
-          <div className={cn('flex flex-col items-center gap-3 text-center scroll-reveal', showcaseInView && 'in-view')}>
-            <span className="text-xs font-semibold text-brand-cyan uppercase tracking-widest">AI analysis</span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-white tracking-tight">AI analysis. Every stock. Under 60 seconds.</h2>
-            <p className="text-sm text-surface-400 max-w-md leading-relaxed">No research required. No jargon. Just a clear signal and exactly where to act.</p>
-          </div>
-          <div className={cn('scroll-reveal', showcaseInView && 'in-view', 'delay-150')}>
-            <StockAnalysisShowcase />
-          </div>
-          <div className="flex justify-center">
-            <Link href="/stocks/RELIANCE" className="text-sm font-medium text-brand-cyan hover:underline underline-offset-4">
-              Try RELIANCE analysis free →
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── PRODUCT SHOWCASE: Portfolio ── */}
-      <section className="border-t border-surface-800 bg-surface-900/30 py-20 sm:py-28 px-4 sm:px-6 overflow-hidden">
-        <div className="max-w-5xl mx-auto flex flex-col gap-10">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <span className="text-xs font-semibold text-brand-cyan uppercase tracking-widest">Portfolio builder</span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-white tracking-tight">A full NSE portfolio. Built by AI in 2 minutes.</h2>
-            <p className="text-sm text-surface-400 max-w-md leading-relaxed">Enter your budget and risk level. Get 10 positions — with allocation, stop loss, and 3 targets per stock.</p>
-          </div>
-          <PortfolioShowcase />
-          <div className="flex justify-center">
-            <Link href="/portfolio" className="text-sm font-medium text-brand-cyan hover:underline underline-offset-4">
-              Build your portfolio free →
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── SEO TEXT BLOCK ── */}
-      <section className="border-t border-surface-800 bg-surface-900/20 py-16 px-4 sm:px-6">
-        <div ref={seoRef} className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-          <div className={cn('flex flex-col gap-5 scroll-reveal', seoInView && 'in-view')}>
-            <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">The AI stock analysis tool built for Indian markets</h2>
-            <p className="text-sm text-surface-400 leading-relaxed">
-              Sentiquant is the only AI stock analysis platform built specifically for <strong className="text-surface-300">NSE and BSE stocks</strong>. Where other tools surface raw data, Sentiquant synthesises technicals, fundamentals, and real-time sentiment into a single, actionable output — an entry price, a stop-loss, three price targets, and a plain-English thesis.
+      {/* ── 04 · PORTFOLIO TRACKER ───────────────────────── */}
+      <section style={{ backgroundColor: C.deepSpace, borderTop: `1px solid ${C.lead}22` }}>
+        <div className="max-w-[1200px] mx-auto px-6 sm:px-8 py-24 sm:py-32">
+          <div className="max-w-[720px] mb-16">
+            <div
+              className="text-[12px] uppercase mb-8"
+              style={{ fontFamily: ARCADIA, color: C.silver, letterSpacing: '0.24em' }}
+            >
+              Portfolio Tracker
+            </div>
+            <h2
+              className="text-[40px] sm:text-[49px]"
+              style={{
+                fontFamily: ARCADIA_DISPLAY,
+                color: C.starlight,
+                fontWeight: 360,
+                lineHeight: 1.15,
+              }}
+            >
+              Watch your picks
+              <br />
+              in flight.
+            </h2>
+            <p
+              className="mt-7 max-w-[560px] text-[17px]"
+              style={{ fontFamily: ARCADIA, color: C.silver, lineHeight: 1.5 }}
+            >
+              Generate an AI portfolio in one click. Track every position against its T1, T2 and T3 targets in a live table — sortable, filterable, ruthlessly clean.
             </p>
-            <p className="text-sm text-surface-400 leading-relaxed">
-              Whether you&apos;re looking for the <strong className="text-surface-300">best stocks to buy in India in 2026</strong>, analysing an intraday setup, or building a long-term portfolio — Sentiquant gives you the signal, the grade, and the reasoning behind it.
-            </p>
-            <Link href="/analysis" className="inline-flex items-center gap-1.5 text-sm text-brand-cyan hover:underline underline-offset-4 font-medium w-fit">
-              Browse AI analysis for top NSE stocks →
-            </Link>
           </div>
-          <div className={cn('flex flex-col gap-4 scroll-reveal delay-150', seoInView && 'in-view')}>
-            <h3 className="font-display font-bold text-lg text-white">Covers every major NSE sector</h3>
-            <div className="grid grid-cols-2 gap-2.5">
-              {['Banking & NBFC','Information Technology','Pharmaceuticals','Automobile & EV','FMCG & Consumer','Infrastructure','Energy & Conglomerates','Metals & Mining'].map((sector) => (
-                <div key={sector} className="flex items-center gap-2 rounded-lg border border-surface-800 bg-surface-900 px-3 py-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan shrink-0" />
-                  <span className="text-xs text-surface-400">{sector}</span>
+
+          <div
+            className="overflow-hidden border"
+            style={{ backgroundColor: C.midnightSlate, borderColor: `${C.lead}55`, borderRadius: 0 }}
+          >
+            <div
+              className="flex items-center justify-between px-6 py-4"
+              style={{ borderBottom: `1px solid ${C.lead}33` }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="text-[12px] uppercase"
+                  style={{ fontFamily: ARCADIA, color: C.silver, letterSpacing: '0.18em' }}
+                >
+                  My Portfolio · Swing
                 </div>
-              ))}
+                <span
+                  className="text-[10px] uppercase px-2 py-0.5 text-emerald-300 bg-emerald-500/10 border border-emerald-400/30 tracking-[0.18em]"
+                  style={{ fontFamily: ARCADIA, fontWeight: 480 }}
+                >
+                  Live
+                </span>
+              </div>
+              <div
+                className="text-[12px] hidden sm:block"
+                style={{ fontFamily: ARCADIA, color: C.silver }}
+              >
+                5 positions · 1 target hit
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px]">
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${C.lead}33` }}>
+                    {[
+                      { l: 'Symbol', a: 'left',  pad: 'px-6' },
+                      { l: 'Signal', a: 'left',  pad: ''     },
+                      { l: 'CMP',    a: 'right', pad: ''     },
+                      { l: 'Δ',      a: 'right', pad: ''     },
+                      { l: 'T1',     a: 'right', pad: ''     },
+                      { l: 'T2',     a: 'right', pad: ''     },
+                      { l: 'T3',     a: 'right', pad: 'pr-6' },
+                    ].map((h) => (
+                      <th
+                        key={h.l}
+                        className={`${h.pad} py-4 text-[11px] uppercase`}
+                        style={{
+                          fontFamily: ARCADIA,
+                          color: C.silver,
+                          letterSpacing: '0.18em',
+                          fontWeight: 400,
+                          textAlign: h.a as 'left' | 'right',
+                        }}
+                      >
+                        {h.l}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {PORTFOLIO_ROWS.map((row, idx) => (
+                    <tr
+                      key={row.symbol}
+                      className="transition-colors hover:bg-white/[0.02]"
+                      style={{
+                        borderBottom: idx === PORTFOLIO_ROWS.length - 1
+                          ? 'none'
+                          : `1px solid ${C.lead}22`,
+                      }}
+                    >
+                      <td className="px-6 py-5">
+                        <div
+                          className="text-[15px] tabular-nums"
+                          style={{ fontFamily: ARCADIA, color: C.starlight, fontWeight: 480 }}
+                        >
+                          {row.symbol}
+                        </div>
+                        <div
+                          className="text-[12px] mt-0.5"
+                          style={{ fontFamily: ARCADIA, color: C.silver }}
+                        >
+                          {row.name}
+                        </div>
+                      </td>
+                      <td className="py-5">
+                        <SignalBadge signal={row.signal} size="sm" />
+                      </td>
+                      <td
+                        className="text-right py-5 text-[14px] tabular-nums"
+                        style={{ fontFamily: ARCADIA, color: C.starlight }}
+                      >
+                        ₹{row.cmp.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td
+                        className={`text-right py-5 text-[14px] tabular-nums ${row.change >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}
+                        style={{ fontFamily: ARCADIA }}
+                      >
+                        {row.change >= 0 ? '+' : ''}{row.change.toFixed(2)}%
+                      </td>
+                      <td
+                        className="text-right py-5 text-[14px] tabular-nums"
+                        style={{
+                          fontFamily: ARCADIA,
+                          color: row.hit === 'T1' ? '#6ee7b7' : C.silver,
+                          fontWeight: row.hit === 'T1' ? 480 : 400,
+                        }}
+                      >
+                        ₹{row.t1.toLocaleString('en-IN')}{row.hit === 'T1' && ' ✓'}
+                      </td>
+                      <td
+                        className="text-right py-5 text-[14px] tabular-nums"
+                        style={{ fontFamily: ARCADIA, color: C.silver }}
+                      >
+                        ₹{row.t2.toLocaleString('en-IN')}
+                      </td>
+                      <td
+                        className="text-right py-5 pr-6 text-[14px] tabular-nums"
+                        style={{ fontFamily: ARCADIA, color: C.silver }}
+                      >
+                        ₹{row.t3.toLocaleString('en-IN')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div
+              className="px-6 py-4 flex items-center justify-between"
+              style={{ borderTop: `1px solid ${C.lead}33` }}
+            >
+              <span
+                className="text-[12px]"
+                style={{ fontFamily: ARCADIA, color: C.silver }}
+              >
+                Updated · just now
+              </span>
+              <Link
+                href="/portfolio"
+                className="text-[13px] inline-flex items-center gap-1.5 px-5 py-2 transition-all hover:brightness-110"
+                style={{
+                  fontFamily: ARCADIA,
+                  fontWeight: 480,
+                  color: C.pureWhite,
+                  backgroundColor: C.mercuryBlue,
+                  borderRadius: 32,
+                }}
+              >
+                Generate yours
+                <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── FAQ ── */}
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-20 flex flex-col gap-10">
-        <div className={cn('text-center flex flex-col gap-3 scroll-reveal', faqInView && 'in-view')}>
-          <span className="text-xs font-semibold text-brand-cyan uppercase tracking-widest">FAQ</span>
-          <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">Common questions</h2>
-        </div>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context':'https://schema.org','@type':'FAQPage',mainEntity:[{'{@type}':'Question',name:'What is the best AI tool for stock analysis in India?',acceptedAnswer:{'@type':'Answer',text:'Sentiquant combines technical indicators, fundamental scoring, and real-time sentiment to give you an entry price, stop-loss, 3 targets, and a 0–100 grade for any Indian stock in under 60 seconds.'}},{'{@type}':'Question',name:'Is Sentiquant free to use?',acceptedAnswer:{'@type':'Answer',text:'Yes. The free plan includes 10 analyses per day — no credit card required.'}},{'{@type}':'Question',name:'Is Sentiquant financial advice?',acceptedAnswer:{'@type':'Answer',text:'No. Sentiquant provides AI-generated analysis only. It is not SEBI-registered advice.'}}] }) }} />
-        <div ref={faqRef} className="flex flex-col divide-y divide-surface-800">
-          {[
-            { q:'What is the best AI tool for stock analysis in India?', a:'Sentiquant is built specifically for NSE and BSE stocks. It combines technical indicators, fundamental scoring, and real-time sentiment to give you an entry price, stop-loss, 3 price targets, and a 0–100 grade for any Indian stock — in under 60 seconds.' },
-            { q:'How does Sentiquant analyse NSE stocks?', a:'Our AI scans each stock across three dimensions: technical analysis (RSI, MACD, moving averages, volume), fundamentals (revenue growth, margins, debt), and sentiment (news tone, institutional flow signals). These combine into a composite score and plain-English thesis.' },
-            { q:'Is Sentiquant free to use?', a:'Yes. The free plan gives you 10 stock analyses per day — no credit card required. Sign up with Google in one click.' },
-            { q:'What Indian stocks does Sentiquant cover?', a:'Sentiquant covers 250+ NSE and BSE stocks — large-caps like Reliance, HDFC Bank, TCS, Infosys, ICICI Bank, and mid-caps across banking, IT, pharma, auto, FMCG, and infrastructure sectors.' },
-            { q:'Can I use Sentiquant for swing trading NSE stocks?', a:'Yes. Swing Analysis mode is designed for 1–4 week NSE trades. You get a specific entry price, stop-loss, and 3 price targets based on current technical momentum and sentiment.' },
-            { q:'Is Sentiquant financial advice?', a:'No. Sentiquant provides AI-generated analysis to help you make more informed decisions. It is not SEBI-registered advice. Always conduct your own research before investing.' },
-          ].map(({ q, a }, i) => (
-            <details key={q} className={cn('group py-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden scroll-reveal', faqInView && 'in-view', STAGGER[i])}>
-              <summary className="flex items-center justify-between gap-4 select-none">
-                <span className="text-sm font-medium text-white group-open:text-brand-cyan transition-colors duration-200">{q}</span>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="shrink-0 text-surface-500 group-open:text-brand-cyan group-open:rotate-180 transition-all duration-200"><path d="M4 6l4 4 4-4" /></svg>
-              </summary>
-              <p className="mt-3 text-sm text-surface-400 leading-relaxed">{a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      {/* ── BOTTOM CTA ── */}
-      <section className="relative py-24 sm:py-32 px-4 sm:px-6 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(59,130,246,0.10) 0%, transparent 70%)' }} aria-hidden="true" />
-        <div ref={ctaRef} className={cn('relative max-w-2xl mx-auto text-center flex flex-col items-center gap-6 scroll-reveal', ctaInView && 'in-view')}>
-          <div className="px-4 py-1.5 rounded-full border border-brand-cyan/20 bg-brand-blue/10 text-brand-cyan text-xs font-medium tracking-wide">Free to start · No credit card</div>
-          <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-tight leading-[1.08]">
-            <span className="text-white">Start analyzing stocks</span>
-            <br />
-            <span className="bg-gradient-to-r from-brand-blue to-brand-cyan bg-clip-text text-transparent">for free</span>
-          </h2>
-          <p className="text-surface-400 text-sm leading-relaxed max-w-sm">AI-grade analysis on any NSE or BSE stock. Signals, targets, risk insights — all in under 60 seconds.</p>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link href="/stocks" className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-brand-blue to-brand-cyan text-white font-bold text-sm hover:opacity-90 transition-all duration-200">Try it now</Link>
-            <Link href="/dashboard" className="px-8 py-3.5 rounded-xl border border-surface-700 text-surface-300 font-medium text-sm hover:border-surface-500 hover:text-white transition-all">View dashboard →</Link>
+      {/* ── 05 · FAQ ─────────────────────────────────────── */}
+      <section style={{ borderTop: `1px solid ${C.lead}22` }}>
+        <div className="max-w-[920px] mx-auto px-6 sm:px-8 py-24 sm:py-32">
+          <div className="mb-16">
+            <div
+              className="text-[12px] uppercase mb-8"
+              style={{ fontFamily: ARCADIA, color: C.silver, letterSpacing: '0.24em' }}
+            >
+              Questions
+            </div>
+            <h2
+              className="text-[40px] sm:text-[49px]"
+              style={{
+                fontFamily: ARCADIA_DISPLAY,
+                color: C.starlight,
+                fontWeight: 360,
+                lineHeight: 1.15,
+              }}
+            >
+              Asked, answered.
+            </h2>
           </div>
-          <GoogleSignInButton />
-          <p className="text-xs text-surface-700">Not financial advice. Always do your own research.</p>
+
+          <div>
+            {FAQ_ITEMS.map((item, i) => {
+              const open = openFaq === i;
+              return (
+                <div
+                  key={i}
+                  style={{
+                    borderTop: i === 0 ? `1px solid ${C.lead}` : 'none',
+                    borderBottom: `1px solid ${C.lead}`,
+                  }}
+                >
+                  <button
+                    onClick={() => setOpenFaq(open ? null : i)}
+                    className="w-full text-left py-7 focus:outline-none group"
+                    aria-expanded={open}
+                  >
+                    <div className="flex items-start justify-between gap-6">
+                      <div className="flex items-start gap-6 flex-1">
+                        <span
+                          className="text-[13px] mt-2 tabular-nums shrink-0"
+                          style={{ fontFamily: ARCADIA, color: C.silver }}
+                        >
+                          {String(i + 1).padStart(2, '0')}
+                        </span>
+                        <span
+                          className="text-[20px] sm:text-[24px] transition-opacity group-hover:opacity-90"
+                          style={{
+                            fontFamily: ARCADIA_DISPLAY,
+                            color: C.starlight,
+                            fontWeight: 480,
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {item.q}
+                        </span>
+                      </div>
+                      <ChevronDown
+                        className="h-5 w-5 mt-2 shrink-0 transition-transform duration-300"
+                        strokeWidth={1.5}
+                        style={{
+                          color: open ? C.starlight : C.silver,
+                          transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                        }}
+                      />
+                    </div>
+                    <div
+                      className="grid transition-all duration-300 ease-out"
+                      style={{
+                        gridTemplateRows: open ? '1fr' : '0fr',
+                        opacity: open ? 1 : 0,
+                        marginTop: open ? 16 : 0,
+                      }}
+                    >
+                      <div className="overflow-hidden">
+                        <p
+                          className="text-[16px] pr-10"
+                          style={{
+                            fontFamily: ARCADIA,
+                            color: C.silver,
+                            lineHeight: 1.6,
+                            paddingLeft: 52,
+                          }}
+                        >
+                          {item.a}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-    </div>
-  )
+      {/* ── 06 · FOOTER ──────────────────────────────────── */}
+      <footer
+        style={{ backgroundColor: C.deepSpace, borderTop: `1px solid ${C.lead}22` }}
+      >
+        <div className="max-w-[1200px] mx-auto px-6 sm:px-8 py-20">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-12">
+            <div className="lg:col-span-2 max-w-sm">
+              <Link href="/" className="flex items-center gap-2.5">
+                <div
+                  className="h-7 w-7 grid place-items-center"
+                  style={{ backgroundColor: C.mercuryBlue, borderRadius: 4 }}
+                >
+                  <span
+                    style={{ fontFamily: ARCADIA_DISPLAY, color: C.pureWhite, fontWeight: 530, fontSize: 14 }}
+                  >
+                    S
+                  </span>
+                </div>
+                <span
+                  className="text-[17px]"
+                  style={{ fontFamily: ARCADIA_DISPLAY, fontWeight: 480 }}
+                >
+                  SentiQuant
+                </span>
+              </Link>
+              <p
+                className="mt-6 text-[14px]"
+                style={{ fontFamily: ARCADIA, color: C.silver, lineHeight: 1.6 }}
+              >
+                AI signal engine for NSE-listed Indian equities. Built for traders and long-term thinkers who want a second opinion before they click buy.
+              </p>
+              <p
+                className="mt-5 text-[12px]"
+                style={{ fontFamily: ARCADIA, color: C.lead, lineHeight: 1.6 }}
+              >
+                SentiQuant is not a SEBI-registered investment advisor. All signals are AI-generated outputs for research and educational use only. Nothing on this site constitutes personalised investment advice.
+              </p>
+            </div>
+
+            <div>
+              <div
+                className="text-[11px] uppercase mb-5"
+                style={{ fontFamily: ARCADIA, color: C.lead, letterSpacing: '0.24em' }}
+              >
+                Product
+              </div>
+              <ul className="space-y-3.5">
+                {[
+                  { label: 'Stocks',    href: '/stocks' },
+                  { label: 'Portfolio', href: '/portfolio' },
+                  { label: 'Pricing',   href: '/pricing' },
+                  { label: 'Sign in',   href: '/auth/signin' },
+                ].map((l) => (
+                  <li key={l.href}>
+                    <Link
+                      href={l.href}
+                      className="text-[14px] transition-opacity hover:opacity-80"
+                      style={{ fontFamily: ARCADIA, color: C.silver }}
+                    >
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <div
+                className="text-[11px] uppercase mb-5"
+                style={{ fontFamily: ARCADIA, color: C.lead, letterSpacing: '0.24em' }}
+              >
+                Community
+              </div>
+              <ul className="space-y-3.5">
+                <li>
+                  <a
+                    href="https://t.me/sentiquant_talks"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[14px] transition-opacity hover:opacity-80"
+                    style={{ fontFamily: ARCADIA, color: C.silver }}
+                  >
+                    Telegram
+                  </a>
+                </li>
+                {[
+                  { label: 'Privacy',    href: '/privacy' },
+                  { label: 'Terms',      href: '/terms' },
+                  { label: 'Disclaimer', href: '/disclaimer' },
+                ].map((l) => (
+                  <li key={l.href}>
+                    <Link
+                      href={l.href}
+                      className="text-[14px] transition-opacity hover:opacity-80"
+                      style={{ fontFamily: ARCADIA, color: C.silver }}
+                    >
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div
+            className="mt-16 pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+            style={{ borderTop: `1px solid ${C.lead}33` }}
+          >
+            <span
+              className="text-[12px]"
+              style={{ fontFamily: ARCADIA, color: C.lead }}
+            >
+              © {new Date().getFullYear()} SentiQuant · sentiquant.org
+            </span>
+            <span
+              className="text-[12px]"
+              style={{ fontFamily: ARCADIA, color: C.lead }}
+            >
+              Made for Indian markets · NSE
+            </span>
+          </div>
+        </div>
+      </footer>
+    </main>
+  );
 }
