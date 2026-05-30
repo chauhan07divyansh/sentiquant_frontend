@@ -321,7 +321,7 @@ function DemoCard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20 }}>
           <span style={{ fontFamily: 'arcadia, Inter, sans-serif', fontSize: 15, color: C.lead }}>{'>'}</span>
           <span style={{ fontFamily: 'arcadia, Inter, sans-serif', fontSize: 15, color: C.silver }}>analyse</span>
-          <span style={{ fontFamily: 'arcadia, Inter, sans-serif', fontSize: 15, color: C.starlight, tabularNums: true, letterSpacing: '0.01em' }}>{typed}</span>
+          <span style={{ fontFamily: 'arcadia, Inter, sans-serif', fontSize: 15, color: C.starlight, fontVariantNumeric: 'tabular-nums', letterSpacing: '0.01em' }}>{typed}</span>
           {phase === 'typing' && (
             <span style={{ display: 'inline-block', width: 8, height: 15, background: C.starlight, animation: 'pulse 1s infinite' }} />
           )}
