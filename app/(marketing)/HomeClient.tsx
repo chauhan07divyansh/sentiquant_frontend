@@ -32,15 +32,71 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
-import {
-  ArrowRight,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  ChevronDown,
-  Menu,
-  X,
-} from 'lucide-react';
+// ─────────── Inline SVG icons (no lucide-react dependency) ───────────
+type IconProps = { className?: string; strokeWidth?: number | string; style?: React.CSSProperties };
+const SvgBase = ({
+  children,
+  strokeWidth = 2,
+  className,
+  style,
+}: IconProps & { children: React.ReactNode }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+    aria-hidden="true"
+  >
+    {children}
+  </svg>
+);
+const ArrowRight = (p: IconProps) => (
+  <SvgBase {...p}>
+    <path d="M5 12h14M13 5l7 7-7 7" />
+  </SvgBase>
+);
+const TrendingUp = (p: IconProps) => (
+  <SvgBase {...p}>
+    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+    <polyline points="16 7 22 7 22 13" />
+  </SvgBase>
+);
+const TrendingDown = (p: IconProps) => (
+  <SvgBase {...p}>
+    <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
+    <polyline points="16 17 22 17 22 11" />
+  </SvgBase>
+);
+const Minus = (p: IconProps) => (
+  <SvgBase {...p}>
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </SvgBase>
+);
+const ChevronDown = (p: IconProps) => (
+  <SvgBase {...p}>
+    <polyline points="6 9 12 15 18 9" />
+  </SvgBase>
+);
+const Menu = (p: IconProps) => (
+  <SvgBase {...p}>
+    <line x1="4" y1="6" x2="20" y2="6" />
+    <line x1="4" y1="12" x2="20" y2="12" />
+    <line x1="4" y1="18" x2="20" y2="18" />
+  </SvgBase>
+);
+const X = (p: IconProps) => (
+  <SvgBase {...p}>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </SvgBase>
+);
 
 // ───────────── Mercury tokens (inlined for portability) ─────────────
 const C = {
