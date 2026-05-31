@@ -402,7 +402,10 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
         </div>
       </div>
 
-      {/* ── 2. Score + AI Signal ── */}
+      {/* ── 2. WHY THIS SIGNAL — Reasoning section (moved up) ── */}
+      <ReasoningSection analysis={analysis} />
+
+      {/* ── 3. Score + AI Signal ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 sm:p-6">
           <div className={cn('absolute inset-0 bg-gradient-to-br opacity-[0.05] pointer-events-none', scoreGrad)} />
@@ -455,9 +458,6 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
           </div>
         </div>
       </div>
-
-      {/* ── 3. WHY THIS SIGNAL — Reasoning section ── */}
-      <ReasoningSection analysis={analysis} />
 
       {/* ── 4. Technical Reference Levels ── */}
       <div className="flex flex-col gap-3">
@@ -674,6 +674,12 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
         <Section title="Sentiment"
           icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="7" cy="7" r="5.5" /><path d="M4.5 8.5s.75 1.5 2.5 1.5 2.5-1.5 2.5-1.5M5 5.5v.5M9 5.5v.5" /></svg>}
         >
+          <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100 dark:border-surface-800">
+            <span className="text-[10px] text-surface-500 leading-relaxed">
+              <span className="font-semibold text-surface-400">Source:</span> Financial news articles &amp; company disclosures
+              · <span className="font-semibold text-surface-400">Method:</span> SBERT semantic scoring
+            </span>
+          </div>
           <KVTable rows={sentRows} />
         </Section>
       </div>
