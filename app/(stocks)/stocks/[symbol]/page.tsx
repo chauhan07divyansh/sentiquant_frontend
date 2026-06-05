@@ -1,5 +1,4 @@
 'use client'
-
 import { useState, useEffect } from 'react'
 import dynamic        from 'next/dynamic'
 import Link           from 'next/link'
@@ -45,12 +44,10 @@ const CompareView = dynamic(
 // ─────────────────────────────────────────────
 function GuestSignupPrompt({ symbol }: { symbol: string }) {
   const [googleLoading, setGoogleLoading] = useState(false)
-
   return (
     <div className="relative">
       {/* Blur overlay on bottom half */}
       <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-surface-950 via-surface-950/90 to-transparent z-10 rounded-b-2xl" />
-
       {/* Prompt card */}
       <div className="absolute bottom-0 left-0 right-0 z-20 p-6 flex flex-col items-center gap-4 text-center">
         <div className="flex flex-col gap-1">
@@ -58,10 +55,9 @@ function GuestSignupPrompt({ symbol }: { symbol: string }) {
             You&apos;re viewing a guest preview
           </p>
           <p className="text-sm text-surface-400">
-            Sign up free to unlock full analysis, portfolio builder, and 10 analyses/day
+            Sign up free to unlock full technical analysis, portfolio builder, and 10 analyses per day
           </p>
         </div>
-
         <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
           {/* Google sign in */}
           <button
@@ -88,7 +84,6 @@ function GuestSignupPrompt({ symbol }: { symbol: string }) {
             )}
             Continue with Google
           </button>
-
           {/* Email sign up */}
           <Link
             href={`/signup?from=/stocks/${symbol}`}
@@ -97,7 +92,6 @@ function GuestSignupPrompt({ symbol }: { symbol: string }) {
             Sign up with email
           </Link>
         </div>
-
         <p className="text-xs text-surface-600">
           Already have an account?{' '}
           <Link href={`/login?from=/stocks/${symbol}`} className="text-brand-cyan hover:underline">
@@ -114,7 +108,7 @@ function GuestSignupPrompt({ symbol }: { symbol: string }) {
 // ─────────────────────────────────────────────
 async function fetchGuestAnalysis(symbol: string): Promise<StockAnalysis> {
   track.guestAnalysisStarted(symbol)
-  const res = await fetch(`/api/proxy/api/v1/analyze/guest/${symbol}`)
+  const res  = await fetch(`/api/proxy/api/v1/analyze/guest/${symbol}`)
   const data = await res.json()
   if (!data.success) {
     if (data.error?.includes('Guest limit') || data.code === 'GUEST_LIMIT_EXCEEDED') {
@@ -145,23 +139,23 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
   const { addRecentlyViewed } = useWatchlistStore()
   const { status: authStatus } = useSession()
   const isLoggedIn = authStatus === 'authenticated'
-  const isGuest = authStatus === 'unauthenticated'
+  const isGuest    = authStatus === 'unauthenticated'
 
   useEffect(() => { addRecentlyViewed(symbol) }, [symbol]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Guest query — only runs when not logged in and on swing tab
   const guestQuery = useQuery({
-    queryKey: ['guest-analysis', symbol],
-    queryFn:  () => fetchGuestAnalysis(symbol),
-    enabled:  isGuest && tab === 'swing',
-    retry:    false,
+    queryKey:  ['guest-analysis', symbol],
+    queryFn:   () => fetchGuestAnalysis(symbol),
+    enabled:   isGuest && tab === 'swing',
+    retry:     false,
     staleTime: 5 * 60 * 1000,
   })
 
   // Authenticated queries
-  const swingQuery    = useSwingAnalysis(symbol,    { enabled: isLoggedIn && tab === 'swing'    })
-  const positionQuery = usePositionAnalysis(symbol, { enabled: isLoggedIn && tab === 'position' })
-  const compareQuery  = useCompareStrategies(symbol,{ enabled: isLoggedIn && tab === 'compare'  })
+  const swingQuery    = useSwingAnalysis(symbol,     { enabled: isLoggedIn && tab === 'swing'    })
+  const positionQuery = usePositionAnalysis(symbol,  { enabled: isLoggedIn && tab === 'position' })
+  const compareQuery  = useCompareStrategies(symbol, { enabled: isLoggedIn && tab === 'compare'  })
 
   const activeQuery = isGuest
     ? guestQuery
@@ -172,8 +166,8 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
   const { data, isPending, isFetching, error, refetch } = activeQuery
 
   const tabs = [
-    { id: 'swing',    emoji: '⚡', label: 'Swing',    sub: '1–4 weeks'   },
-    { id: 'position', emoji: '📈', label: 'Position', sub: '6–18 months' },
+    { id: 'swing',    emoji: '⚡', label: 'Swing',    sub: '1–4 weeks'    },
+    { id: 'position', emoji: '📈', label: 'Position', sub: '6–18 months'  },
     { id: 'compare',  emoji: '⚖️', label: 'Compare',  sub: 'side by side' },
   ] as const
 
@@ -207,12 +201,9 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
       {isGuest && (
         <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-brand-blue/10 border border-brand-blue/20 text-sm">
           <span className="text-surface-300">
-            👋 You&apos;re in guest mode — 1 free analysis without signing up
+            👋 You&apos;re in guest mode — 1 free technical analysis without signing up
           </span>
-          <Link
-            href="/signup"
-            className="shrink-0 text-xs font-semibold text-brand-cyan hover:underline"
-          >
+          <Link href="/signup" className="shrink-0 text-xs font-semibold text-brand-cyan hover:underline">
             Sign up free →
           </Link>
         </div>
@@ -236,7 +227,6 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
             )}
           </div>
         </div>
-
         <button
           onClick={() => refetch()}
           disabled={isFetching || isGuest}
@@ -310,7 +300,7 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
             <span className="font-mono text-sm text-surface-900 dark:text-white tabular-nums leading-none">{formatINR(a.current_price, 0)}</span>
             <Change value={a.potential_return} size="sm" />
             <div className="h-4 w-px bg-gray-200 dark:bg-surface-800 shrink-0" />
-            <SignalBadge strength={signal} />
+            <SignalBadge strength={signal} short />
             <div className="ml-auto">
               <GradeBadge grade={a.investment_grade} showFull />
             </div>
@@ -323,7 +313,7 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
         {isPending ? (
           <AnalysisSkeleton />
         ) : error ? (
-          // For guests — always show signup prompt on any error (limit or otherwise)
+          // For guests — show signup prompt on any error
           isGuest ? (
             <div className="flex flex-col items-center gap-4 py-16 text-center">
               <div className="w-16 h-16 rounded-2xl bg-brand-blue/10 border border-brand-blue/20 flex items-center justify-center mb-2">
@@ -331,9 +321,11 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
                   <path d="M14 4a10 10 0 100 20A10 10 0 0014 4z"/><path d="M14 12v6M14 10v.5"/>
                 </svg>
               </div>
-              <p className="text-lg font-semibold text-white">You&apos;ve used your free guest analysis</p>
+              <p className="text-lg font-semibold text-white">
+                You&apos;ve used your free guest analysis
+              </p>
               <p className="text-sm text-surface-400 max-w-xs leading-relaxed">
-                Sign up free to unlock 10 analyses every day, portfolio builder, and more
+                Sign up free to unlock 10 technical analyses every day, portfolio builder, and more
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mt-2">
                 <button
@@ -363,7 +355,6 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
         ) : tab === 'compare' ? (
           <CompareView data={data as CompareResponse} />
         ) : (
-          // Show analysis — for guests wrap with signup prompt overlay
           isGuest ? (
             <div className="relative overflow-hidden rounded-2xl">
               <AnalysisView analysis={data as StockAnalysis} />
@@ -374,6 +365,12 @@ export default function StockDetailPage({ params }: { params: { symbol: string }
           )
         )}
       </div>
+
+      {/* ── Legal disclaimer ── */}
+      <p className="text-[10px] text-surface-700 text-center leading-relaxed pb-2">
+        All outputs are AI-generated technical observations. Not a research report under SEBI RA Regulations 2014. Not investment advice. Always do your own research.
+      </p>
+
     </div>
   )
 }
