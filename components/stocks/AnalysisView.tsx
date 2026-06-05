@@ -8,7 +8,8 @@ import { SignalBadge, GradeBadge, SystemBadge } from '@/components/ui/Badge'
 import { classifySignal } from '@/types/stock.types'
 import {
   formatNumber, timeAgo,
-  signalLabel, signalBg, signalColor,
+  signalLabel, signalBg, signalColor, signalDescription,
+  PRICE_LEVEL_LABELS,
 } from '@/lib/utils/formatters'
 import { useWatchlistStore } from '@/store'
 import type { StockAnalysis } from '@/types/stock.types'
@@ -27,7 +28,7 @@ function scoreGradient(score: number): string {
   if (score >= 50) return 'from-amber-400 to-orange-400'
   return 'from-rose-500 to-pink-400'
 }
-function scoreLabel(score: number): string {
+function scoreStrength(score: number): string {
   if (score >= 80) return 'Strong'
   if (score >= 65) return 'Good'
   if (score >= 50) return 'Moderate'
@@ -39,7 +40,8 @@ function fmtPrice(n: number): string {
 
 // ─────────────────────────────────────────────
 //  REASONING ENGINE
-//  Converts raw technical data into plain-English bullets
+//  Converts raw technical data into plain-English observations.
+//  Language is descriptive (what the data shows), not prescriptive (what to do).
 // ─────────────────────────────────────────────
 interface ReasoningPoint {
   label: string
@@ -52,115 +54,115 @@ function buildReasoning(analysis: StockAnalysis): ReasoningPoint[] {
   const tech = analysis.technical_indicators ?? {}
   const sent = analysis.sentiment ?? {}
 
-  // ── RSI ──
+  // ── Momentum (RSI) ──
   const rsi = tech['rsi'] ?? tech['RSI'] ?? null
   if (rsi != null && typeof rsi === 'number') {
     if (rsi < 30) {
-      points.push({ label: 'RSI', text: `RSI at ${rsi.toFixed(1)} — deeply oversold. Historically strong bounce zone.`, status: 'bullish' })
+      points.push({ label: 'Momentum', text: `RSI at ${rsi.toFixed(1)} — price has fallen sharply and is historically in a recovery zone. Momentum indicators suggest oversold conditions.`, status: 'bullish' })
     } else if (rsi < 45) {
-      points.push({ label: 'RSI', text: `RSI at ${rsi.toFixed(1)} — oversold territory. Good entry conditions building.`, status: 'bullish' })
+      points.push({ label: 'Momentum', text: `RSI at ${rsi.toFixed(1)} — momentum is weak but conditions are approaching a historically significant support zone.`, status: 'bullish' })
     } else if (rsi > 75) {
-      points.push({ label: 'RSI', text: `RSI at ${rsi.toFixed(1)} — overbought. Momentum may be running out soon.`, status: 'bearish' })
+      points.push({ label: 'Momentum', text: `RSI at ${rsi.toFixed(1)} — price has risen sharply. Momentum indicators show extended conditions relative to recent history.`, status: 'bearish' })
     } else if (rsi > 60) {
-      points.push({ label: 'RSI', text: `RSI at ${rsi.toFixed(1)} — elevated but not extreme. Trend is strong.`, status: 'neutral' })
+      points.push({ label: 'Momentum', text: `RSI at ${rsi.toFixed(1)} — trend momentum is positive. No extreme readings in either direction.`, status: 'neutral' })
     } else {
-      points.push({ label: 'RSI', text: `RSI at ${rsi.toFixed(1)} — neutral zone. No strong directional signal from momentum.`, status: 'neutral' })
+      points.push({ label: 'Momentum', text: `RSI at ${rsi.toFixed(1)} — momentum is neutral. No strong directional bias from this indicator.`, status: 'neutral' })
     }
   }
 
-  // ── MACD ──
-  const macdLine = tech['MACD Line'] ?? tech['macd_line'] ?? null
-  const macdSignal = tech['MACD Signal'] ?? tech['macd_signal'] ?? null
-  const macdHist = tech['MACD Histogram'] ?? tech['macd_histogram'] ?? null
-  if (macdLine != null && macdSignal != null) {
-    const crossedAbove = Number(macdLine) > Number(macdSignal)
-    const histGrowing = macdHist != null && Number(macdHist) > 0
-    if (crossedAbove && histGrowing) {
-      points.push({ label: 'MACD', text: `MACD line above signal line with growing histogram — momentum is accelerating upward.`, status: 'bullish' })
-    } else if (crossedAbove) {
-      points.push({ label: 'MACD', text: `MACD line above signal line — bullish crossover, but momentum is slowing.`, status: 'neutral' })
-    } else if (!crossedAbove && !histGrowing) {
-      points.push({ label: 'MACD', text: `MACD below signal line with negative histogram — downward momentum is in play.`, status: 'bearish' })
+  // ── Trend Direction (MACD) ──
+  const macdLine   = tech['MACD Line']      ?? tech['macd_line']      ?? null
+  const macdSig    = tech['MACD Signal']    ?? tech['macd_signal']    ?? null
+  const macdHist   = tech['MACD Histogram'] ?? tech['macd_histogram'] ?? null
+  if (macdLine != null && macdSig != null) {
+    const above      = Number(macdLine) > Number(macdSig)
+    const histPos    = macdHist != null && Number(macdHist) > 0
+    if (above && histPos) {
+      points.push({ label: 'Trend Direction', text: `MACD shows trend momentum accelerating upward. The signal line crossover is confirmed by a growing histogram.`, status: 'bullish' })
+    } else if (above) {
+      points.push({ label: 'Trend Direction', text: `MACD line is above the signal line — trend is positive but momentum appears to be slowing.`, status: 'neutral' })
+    } else if (!above && !histPos) {
+      points.push({ label: 'Trend Direction', text: `MACD shows downward momentum. Both the crossover and histogram confirm a bearish trend direction.`, status: 'bearish' })
     } else {
-      points.push({ label: 'MACD', text: `MACD below signal line — bearish crossover but momentum may be stabilizing.`, status: 'neutral' })
+      points.push({ label: 'Trend Direction', text: `MACD is below the signal line but histogram is narrowing — downward momentum may be stabilizing.`, status: 'neutral' })
     }
   }
 
-  // ── Bollinger Bands ──
+  // ── Price Range (Bollinger Bands) ──
   const bbUpper = tech['Bollinger Upper'] ?? tech['bollinger_bands_upper'] ?? null
   const bbLower = tech['Bollinger Lower'] ?? tech['bollinger_bands_lower'] ?? null
-  const price = analysis.current_price
+  const price   = analysis.current_price
   if (bbUpper != null && bbLower != null && price) {
-    const range = Number(bbUpper) - Number(bbLower)
+    const range    = Number(bbUpper) - Number(bbLower)
     const position = range > 0 ? (price - Number(bbLower)) / range : 0.5
     if (position < 0.2) {
-      points.push({ label: 'Bollinger', text: `Price near lower Bollinger Band — oversold relative to recent range. Room to move up.`, status: 'bullish' })
+      points.push({ label: 'Price Range', text: `Price is near the lower boundary of its recent trading range — historically this zone has acted as a support area.`, status: 'bullish' })
     } else if (position > 0.8) {
-      points.push({ label: 'Bollinger', text: `Price near upper Bollinger Band — extended relative to recent range. Limited upside room.`, status: 'bearish' })
+      points.push({ label: 'Price Range', text: `Price is near the upper boundary of its recent trading range — historically this zone has acted as a resistance area.`, status: 'bearish' })
     } else {
-      points.push({ label: 'Bollinger', text: `Price in middle of Bollinger Bands — neither stretched nor compressed. Wait for clearer move.`, status: 'neutral' })
+      points.push({ label: 'Price Range', text: `Price is within the middle of its recent trading range. No extreme readings from this indicator.`, status: 'neutral' })
     }
   }
 
-  // ── Stochastic ──
+  // ── Short-term Momentum (Stochastic) ──
   const stochK = tech['Stochastic K'] ?? tech['stochastic_k'] ?? null
   if (stochK != null && typeof stochK === 'number') {
     if (stochK < 20) {
-      points.push({ label: 'Stochastic', text: `Stochastic at ${stochK.toFixed(1)} — oversold. Short-term reversal signals possible.`, status: 'bullish' })
+      points.push({ label: 'Short-term Momentum', text: `Stochastic oscillator at ${stochK.toFixed(1)} — short-term momentum is in an oversold zone. Historically associated with potential reversals.`, status: 'bullish' })
     } else if (stochK > 80) {
-      points.push({ label: 'Stochastic', text: `Stochastic at ${stochK.toFixed(1)} — overbought. Short-term pullback risk is elevated.`, status: 'bearish' })
+      points.push({ label: 'Short-term Momentum', text: `Stochastic oscillator at ${stochK.toFixed(1)} — short-term momentum is in an overbought zone. Historically associated with potential pullbacks.`, status: 'bearish' })
     }
   }
 
-  // ── Support / Resistance ──
-  const support = tech['S/R Support'] ?? tech['support_resistance_support'] ?? null
+  // ── Key Price Levels (Support / Resistance) ──
+  const support    = tech['S/R Support']    ?? tech['support_resistance_support']    ?? null
   const resistance = tech['S/R Resistance'] ?? tech['support_resistance_resistance'] ?? null
   if (support != null && resistance != null && price) {
-    const distToSupport = ((price - Number(support)) / price * 100).toFixed(1)
-    const distToResistance = ((Number(resistance) - price) / price * 100).toFixed(1)
+    const distDown = ((price - Number(support))    / price * 100).toFixed(1)
+    const distUp   = ((Number(resistance) - price) / price * 100).toFixed(1)
     points.push({
-      label: 'Support / Resistance',
-      text: `Support at ₹${Number(support).toFixed(0)} (${distToSupport}% below). Resistance at ₹${Number(resistance).toFixed(0)} (${distToResistance}% above).`,
-      status: Number(distToSupport) < Number(distToResistance) ? 'bullish' : 'neutral'
+      label:  'Key Price Levels',
+      text:   `Historical support at ₹${Number(support).toFixed(0)} (${distDown}% below current price). Historical resistance at ₹${Number(resistance).toFixed(0)} (${distUp}% above current price).`,
+      status: Number(distDown) < Number(distUp) ? 'bullish' : 'neutral',
     })
   }
 
-  // ── Sentiment ──
+  // ── News Sentiment ──
   const sentSummary = sent['summary'] as { positive?: number; negative?: number; neutral?: number } | null
   if (sentSummary && typeof sentSummary === 'object') {
-    const pos = sentSummary.positive ?? 0
-    const neg = sentSummary.negative ?? 0
+    const pos   = sentSummary.positive ?? 0
+    const neg   = sentSummary.negative ?? 0
     const total = pos + neg + (sentSummary.neutral ?? 0)
     if (total > 0) {
       const posPct = Math.round((pos / total) * 100)
       if (posPct >= 70) {
-        points.push({ label: 'News Sentiment', text: `${pos} of ${total} recent news articles are positive (${posPct}%). Market mood is supportive.`, status: 'bullish' })
+        points.push({ label: 'News Sentiment', text: `${pos} of ${total} recent news articles scored positive. News flow is broadly supportive of the stock.`, status: 'bullish' })
       } else if (posPct <= 30) {
-        points.push({ label: 'News Sentiment', text: `${neg} of ${total} recent articles are negative (${100 - posPct}%). Market mood is cautious.`, status: 'bearish' })
+        points.push({ label: 'News Sentiment', text: `${neg} of ${total} recent articles scored negative. News flow is broadly cautious around the stock.`, status: 'bearish' })
       } else {
-        points.push({ label: 'News Sentiment', text: `Mixed sentiment — ${pos} positive, ${neg} negative out of ${total} articles. No clear news catalyst.`, status: 'neutral' })
+        points.push({ label: 'News Sentiment', text: `News sentiment is mixed — ${pos} positive, ${neg} negative out of ${total} articles. No clear directional bias from recent news.`, status: 'neutral' })
       }
     }
   }
 
-  // ── Risk / Volatility ──
-  const atr = tech['Risk Atr'] ?? tech['risk_metrics_atr'] ?? null
+  // ── Volatility ──
+  const atr       = tech['Risk Atr']        ?? tech['risk_metrics_atr']        ?? null
   const riskLevel = tech['Risk Risk Level'] ?? tech['risk_metrics_risk_level'] ?? null
   if (riskLevel) {
     const lvl = String(riskLevel).toUpperCase()
     if (lvl === 'LOW') {
-      points.push({ label: 'Volatility', text: `Low volatility stock — steady mover. Easier to hold through minor pullbacks.`, status: 'bullish' })
+      points.push({ label: 'Volatility', text: `Low daily volatility — this stock moves steadily relative to its history. Lower risk of sharp unexpected swings.`, status: 'bullish' })
     } else if (lvl === 'HIGH') {
-      points.push({ label: 'Volatility', text: `High volatility stock — moves sharply. Use strict stop loss and smaller position size.`, status: 'bearish' })
+      points.push({ label: 'Volatility', text: `High daily volatility — this stock has a history of sharp moves. Position sizing and risk management are especially important.`, status: 'bearish' })
     } else {
-      points.push({ label: 'Volatility', text: `Moderate volatility. Normal position sizing applies.`, status: 'neutral' })
+      points.push({ label: 'Volatility', text: `Moderate daily volatility. Historical price swings are within normal range for this stock.`, status: 'neutral' })
     }
   } else if (atr != null && price) {
     const atrPct = (Number(atr) / price) * 100
     if (atrPct > 3) {
-      points.push({ label: 'Volatility', text: `ATR at ${atrPct.toFixed(1)}% of price — high daily swings. Be prepared for choppy movement.`, status: 'bearish' })
+      points.push({ label: 'Volatility', text: `Average daily range is ${atrPct.toFixed(1)}% of price — historically high. Expect larger intraday swings.`, status: 'bearish' })
     } else if (atrPct < 1) {
-      points.push({ label: 'Volatility', text: `ATR at ${atrPct.toFixed(1)}% of price — low daily swings. Stable, steady mover.`, status: 'bullish' })
+      points.push({ label: 'Volatility', text: `Average daily range is ${atrPct.toFixed(1)}% of price — historically low. This stock tends to move in a controlled manner.`, status: 'bullish' })
     }
   }
 
@@ -168,11 +170,11 @@ function buildReasoning(analysis: StockAnalysis): ReasoningPoint[] {
 }
 
 // ─────────────────────────────────────────────
-//  REASONING SECTION COMPONENT
+//  REASONING SECTION
 // ─────────────────────────────────────────────
 function ReasoningSection({ analysis }: { analysis: StockAnalysis }) {
-  const signal = classifySignal(analysis.trading_plan.signal)
-  const points = buildReasoning(analysis)
+  const signal  = classifySignal(analysis.trading_plan.signal)
+  const points  = buildReasoning(analysis)
   if (points.length === 0) return null
 
   const bullish = points.filter(p => p.status === 'bullish').length
@@ -200,6 +202,16 @@ function ReasoningSection({ analysis }: { analysis: StockAnalysis }) {
     )
   }
 
+  // Legally safe verdict — describes what data shows, not what to do
+  const verdict = (() => {
+    if (analysis.trading_plan.strategy) return analysis.trading_plan.strategy
+    if (bullish > bearish)
+      return `${bullish} of ${points.length} technical indicators show bullish conditions. ${bearish} show caution. Overall technical picture leans positive.`
+    if (bearish > bullish)
+      return `${bearish} of ${points.length} technical indicators show bearish conditions. ${bullish} show positive signals. Overall technical picture leans cautious.`
+    return `Technical indicators are mixed — ${bullish} bullish, ${bearish} bearish signals. No strong directional bias at current levels.`
+  })()
+
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
       {/* Header */}
@@ -209,13 +221,12 @@ function ReasoningSection({ analysis }: { analysis: StockAnalysis }) {
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-cyan">
               <circle cx="7" cy="7" r="5.5" /><path d="M7 4v4M7 9.5v.5" />
             </svg>
-            <span className="font-semibold text-sm text-surface-900 dark:text-white">Why this signal?</span>
+            <span className="font-semibold text-sm text-surface-900 dark:text-white">How this reading was generated</span>
           </div>
           <p className="text-xs text-surface-500 leading-relaxed">
-            {points.length} data points analyzed · {bullish} bullish · {bearish} bearish
+            {points.length} technical data points · {bullish} positive signals · {bearish} cautionary signals
           </p>
         </div>
-        {/* Signal summary pill */}
         <div className={cn(
           'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border',
           signal === 'buy'
@@ -230,7 +241,7 @@ function ReasoningSection({ analysis }: { analysis: StockAnalysis }) {
         </div>
       </div>
 
-      {/* Reasoning points */}
+      {/* Data points */}
       <div className="px-5 py-4 flex flex-col gap-3">
         {points.map((point, i) => (
           <div key={i} className="flex items-start gap-3">
@@ -250,7 +261,7 @@ function ReasoningSection({ analysis }: { analysis: StockAnalysis }) {
         ))}
       </div>
 
-      {/* Summary verdict */}
+      {/* Technical summary */}
       <div className={cn(
         'mx-5 mb-4 px-4 py-3 rounded-xl border text-xs leading-relaxed',
         signal === 'buy'
@@ -259,15 +270,13 @@ function ReasoningSection({ analysis }: { analysis: StockAnalysis }) {
           ? 'bg-rose-400/5 border-rose-400/20 text-rose-300'
           : 'bg-amber-400/5 border-amber-400/20 text-amber-300'
       )}>
-        <span className="font-semibold">AI verdict: </span>
-        {analysis.trading_plan.strategy || (
-          bullish > bearish
-            ? `${bullish} of ${points.length} indicators are bullish. Technical setup favors the current signal.`
-            : bearish > bullish
-            ? `${bearish} of ${points.length} indicators show caution. Risk is elevated at current levels.`
-            : `Indicators are mixed. Wait for clearer confirmation before acting.`
-        )}
+        <span className="font-semibold">Technical summary: </span>{verdict}
       </div>
+
+      {/* Disclaimer note */}
+      <p className="text-[10px] text-surface-600 px-5 pb-4 leading-relaxed">
+        This reading is based on publicly available price and news data. It describes technical conditions, not investment advice. Always conduct your own research.
+      </p>
     </div>
   )
 }
@@ -339,25 +348,24 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
   const watched = isWatched(analysis.symbol)
   const [shareToast, setShareToast] = useState(false)
 
-  const entryNum  = parsePrice(analysis.trading_plan.entry_price)
-  const stopNum   = parsePrice(analysis.trading_plan.stop_loss)
-  const targetNum = analysis.target_price
-  const base      = entryNum ?? analysis.current_price
-
+  const entryNum       = parsePrice(analysis.trading_plan.entry_price)
+  const stopNum        = parsePrice(analysis.trading_plan.stop_loss)
+  const targetNum      = analysis.target_price
+  const base           = entryNum ?? analysis.current_price
   const entryVsCurrent = entryNum != null
     ? ((entryNum - analysis.current_price) / analysis.current_price) * 100
     : null
-  const targetGainPct = ((targetNum - base) / base) * 100
-  const stopLossPct   = stopNum != null ? ((stopNum - base) / base) * 100 : null
-  const rrRatio       = stopLossPct != null && stopLossPct !== 0
+  const targetGainPct  = ((targetNum - base) / base) * 100
+  const stopLossPct    = stopNum != null ? ((stopNum - base) / base) * 100 : null
+  const rrRatio        = stopLossPct != null && stopLossPct !== 0
     ? Math.abs(targetGainPct / stopLossPct)
     : null
 
   const handleShare = async () => {
-    const text = `${analysis.symbol} — AI Score: ${analysis.overall_score}/100 | ${analysis.trading_plan.signal} | Target: ${fmtPrice(targetNum)} | SentiQuant`
+    const text = `${analysis.symbol} — AI Score: ${analysis.overall_score}/100 | ${signalLabel(signal)} | ${PRICE_LEVEL_LABELS.t1}: ${fmtPrice(targetNum)} | SentiQuant`
     try {
       if (navigator.share) {
-        await navigator.share({ title: `${analysis.symbol} Analysis`, text, url: window.location.href })
+        await navigator.share({ title: `${analysis.symbol} Technical Analysis`, text, url: window.location.href })
       } else {
         await navigator.clipboard.writeText(window.location.href)
         setShareToast(true)
@@ -373,7 +381,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
 
-      {/* ── 1. Hero — Price + Signal ── */}
+      {/* ── 1. Hero — Price + Technical Reading ── */}
       <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900">
         <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/6 via-transparent to-brand-cyan/6 pointer-events-none" />
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-cyan/5 rounded-full blur-3xl pointer-events-none" />
@@ -391,7 +399,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
                 <Change value={analysis.potential_return} size="md" />
               </div>
               <p className="text-xs text-surface-500 mt-1">
-                {analysis.time_horizon} · {analysis.system_type} system
+                {analysis.time_horizon} · {analysis.system_type} system · AI-generated technical reading
               </p>
             </div>
             <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 flex-wrap">
@@ -402,11 +410,12 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
         </div>
       </div>
 
-      {/* ── 2. WHY THIS SIGNAL — Reasoning section (moved up) ── */}
+      {/* ── 2. How this reading was generated (Reasoning) ── */}
       <ReasoningSection analysis={analysis} />
 
-      {/* ── 3. Score + AI Signal ── */}
+      {/* ── 3. Score + Technical Reading ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* AI Score */}
         <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 sm:p-6">
           <div className={cn('absolute inset-0 bg-gradient-to-br opacity-[0.05] pointer-events-none', scoreGrad)} />
           <div className="relative flex flex-col gap-4">
@@ -424,7 +433,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
                 analysis.overall_score >= 50 ? 'bg-amber-400/10 text-amber-400' :
                 'bg-rose-400/10 text-rose-400'
               )}>
-                {scoreLabel(analysis.overall_score)}
+                {scoreStrength(analysis.overall_score)}
               </span>
             </div>
             <div className="flex items-baseline gap-1.5 leading-none">
@@ -438,21 +447,22 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
           </div>
         </div>
 
+        {/* Technical Reading */}
         <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 sm:p-6">
           <div className="flex flex-col gap-4 h-full">
             <div className="flex items-center gap-2">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" className="text-brand-cyan">
                 <circle cx="7" cy="7" r="5.5" /><path d="M7 5v4M7 4v.5" />
               </svg>
-              <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest">AI Signal</span>
+              <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest">Technical Reading</span>
             </div>
             <div className={cn('flex items-center justify-center px-6 py-5 rounded-xl border', signalBg(signal))}>
-              <span className={cn('font-display text-3xl font-bold tracking-wider', signalColor(signal))}>
+              <span className={cn('font-display text-2xl font-bold tracking-wide text-center', signalColor(signal))}>
                 {signalLabel(signal).toUpperCase()}
               </span>
             </div>
-            <p className="text-xs text-surface-400 leading-relaxed line-clamp-3 flex-1">
-              {analysis.trading_plan.strategy}
+            <p className="text-xs text-surface-400 leading-relaxed flex-1">
+              {signalDescription(signal)}
             </p>
             <SystemBadge type={analysis.system_type} className="self-start" />
           </div>
@@ -466,9 +476,10 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
             <path d="M2 10h10M2 7h7M2 4h4" />
           </svg>
           Technical Reference Levels
+          <span className="text-[10px] font-normal text-surface-500 ml-1">— historical price zones, not price targets</span>
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Entry */}
+          {/* Technical Entry Zone */}
           <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4 sm:p-5">
             <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/6 to-transparent pointer-events-none" />
             <div className="relative flex flex-col gap-3">
@@ -479,8 +490,8 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Watch Zone</p>
-                  <p className="text-[10px] text-surface-600">Reference entry zone</p>
+                  <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">{PRICE_LEVEL_LABELS.entry}</p>
+                  <p className="text-[10px] text-surface-600">{PRICE_LEVEL_LABELS.entryNote}</p>
                 </div>
               </div>
               {entryNum != null ? (
@@ -499,7 +510,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
             </div>
           </div>
 
-          {/* Target */}
+          {/* Technical Resistance */}
           <div className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-white dark:bg-surface-900 p-4 sm:p-5">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/6 to-transparent pointer-events-none" />
             <div className="relative flex flex-col gap-3">
@@ -510,18 +521,18 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Upper Reference</p>
-                  <p className="text-[10px] text-surface-600">Upper technical level</p>
+                  <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">{PRICE_LEVEL_LABELS.t1}</p>
+                  <p className="text-[10px] text-surface-600">{PRICE_LEVEL_LABELS.targetNote}</p>
                 </div>
               </div>
               <p className="font-mono text-2xl sm:text-3xl font-bold text-emerald-400 tabular-nums leading-none">{fmtPrice(targetNum)}</p>
               <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md w-fit bg-emerald-400/10 text-emerald-400">
-                +{targetGainPct.toFixed(2)}% potential gain
+                {targetGainPct.toFixed(2)}% from entry zone
               </span>
             </div>
           </div>
 
-          {/* Stop */}
+          {/* Technical Support */}
           <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-white dark:bg-surface-900 p-4 sm:p-5">
             <div className="absolute inset-0 bg-gradient-to-br from-rose-500/6 to-transparent pointer-events-none" />
             <div className="relative flex flex-col gap-3">
@@ -532,8 +543,8 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Risk Reference</p>
-                  <p className="text-[10px] text-surface-600">Lower risk reference</p>
+                  <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">{PRICE_LEVEL_LABELS.stop}</p>
+                  <p className="text-[10px] text-surface-600">{PRICE_LEVEL_LABELS.stopNote}</p>
                 </div>
               </div>
               {stopNum != null ? (
@@ -541,29 +552,29 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
                   <p className="font-mono text-2xl sm:text-3xl font-bold text-rose-400 tabular-nums leading-none">{fmtPrice(stopNum)}</p>
                   {stopLossPct != null && (
                     <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md w-fit bg-rose-400/10 text-rose-400">
-                      {stopLossPct.toFixed(2)}% max loss
+                      {stopLossPct.toFixed(2)}% from entry zone
                     </span>
                   )}
                 </>
               ) : (
                 <p className="text-sm text-surface-400">
-                  {analysis.trading_plan.stop_loss === 'N/A' ? 'Use trailing stop' : analysis.trading_plan.stop_loss}
+                  {analysis.trading_plan.stop_loss === 'N/A' ? 'No clear support level identified' : analysis.trading_plan.stop_loss}
                 </p>
               )}
             </div>
           </div>
         </div>
 
-        {/* Extended targets */}
+        {/* Extended resistance levels */}
         {([analysis.trading_plan.target_2, analysis.trading_plan.target_3] as string[]).some(t => t && t !== 'N/A') && (
           <div className="flex items-center gap-2 flex-wrap pt-1">
-            <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest">Extended targets:</span>
+            <span className="text-[10px] font-semibold text-surface-500 uppercase tracking-widest">Extended resistance levels:</span>
             {(['target_2', 'target_3'] as const).map((k, i) => {
-              const t = analysis.trading_plan[k]
+              const t    = analysis.trading_plan[k]
               const tNum = t && t !== 'N/A' ? parsePrice(t) : null
               return tNum ? (
                 <span key={k} className="text-xs font-mono font-medium text-emerald-400 bg-emerald-400/8 border border-emerald-400/20 px-2 py-0.5 rounded">
-                  T{i + 2}: {fmtPrice(tNum)}
+                  {i === 0 ? PRICE_LEVEL_LABELS.t2 : PRICE_LEVEL_LABELS.t3}: {fmtPrice(tNum)}
                 </span>
               ) : null
             })}
@@ -578,24 +589,25 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-cyan">
               <path d="M1 6h10M6 1v10" />
             </svg>
-            Risk-Reward Analysis
+            Technical Risk-Reward Ratio
           </h3>
           <div className="grid grid-cols-3 gap-4 sm:gap-6 mb-6">
             <div className="flex flex-col gap-1.5">
-              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Upside Reference</p>
+              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Distance to R1</p>
               <p className="font-mono text-xl sm:text-2xl font-bold text-emerald-400 tabular-nums leading-none">+{targetGainPct.toFixed(2)}%</p>
               {entryNum != null && <p className="text-[10px] text-surface-500">{fmtPrice(targetNum - entryNum)} per share</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Downside Reference</p>
+              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Distance to Support</p>
               <p className="font-mono text-xl sm:text-2xl font-bold text-rose-400 tabular-nums leading-none">{stopLossPct.toFixed(2)}%</p>
               {entryNum != null && stopNum != null && <p className="text-[10px] text-surface-500">{fmtPrice(Math.abs(stopNum - entryNum))} per share</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider">Risk:Reward</p>
+              <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider">R:R Ratio</p>
               <p className="font-mono text-xl sm:text-2xl font-bold text-surface-900 dark:text-white tabular-nums leading-none">1:{rrRatio.toFixed(2)}</p>
-              <p className={cn('text-[10px] font-semibold', rrRatio >= 3 ? 'text-emerald-400' : rrRatio >= 2 ? 'text-brand-cyan' : 'text-amber-400')}>
-                {rrRatio >= 3 ? '✦ Excellent' : rrRatio >= 2 ? '✓ Favorable' : '⚠ Consider carefully'}
+              <p className={cn('text-[10px] font-semibold',
+                rrRatio >= 3 ? 'text-emerald-400' : rrRatio >= 2 ? 'text-brand-cyan' : 'text-amber-400')}>
+                {rrRatio >= 3 ? '✦ Favorable' : rrRatio >= 2 ? '✓ Acceptable' : '⚠ Tight ratio'}
               </p>
             </div>
           </div>
@@ -607,8 +619,8 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
               style={{ width: `${targetGainPct / (targetGainPct + Math.abs(stopLossPct)) * 100}%` }} />
           </div>
           <div className="flex justify-between mt-2">
-            <span className="text-[10px] text-rose-400/70 font-medium">Stop loss</span>
-            <span className="text-[10px] text-emerald-400/70 font-medium">Target</span>
+            <span className="text-[10px] text-rose-400/70 font-medium">Technical Support</span>
+            <span className="text-[10px] text-emerald-400/70 font-medium">Technical Resistance</span>
           </div>
         </div>
       )}
@@ -641,10 +653,10 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
         </button>
       </div>
 
-      {/* ── 7. Trailing stop advice ── */}
+      {/* ── 7. Trailing stop note ── */}
       {analysis.trading_plan.trailing_stop_advice && (
         <p className="text-xs text-surface-400 leading-relaxed border-l-2 border-brand-blue/30 pl-3">
-          <span className="font-semibold text-surface-500">Trailing stop:</span>{' '}
+          <span className="font-semibold text-surface-500">Technical note:</span>{' '}
           {analysis.trading_plan.trailing_stop_advice}
         </p>
       )}
@@ -671,7 +683,7 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
           )}
         </Section>
 
-        <Section title="Sentiment"
+        <Section title="News Sentiment"
           icon={<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="7" cy="7" r="5.5" /><path d="M4.5 8.5s.75 1.5 2.5 1.5 2.5-1.5 2.5-1.5M5 5.5v.5M9 5.5v.5" /></svg>}
         >
           <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100 dark:border-surface-800">
@@ -687,13 +699,13 @@ export function AnalysisView({ analysis }: { analysis: StockAnalysis }) {
       {/* ── 9. Disclaimer ── */}
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
         <p className="text-xs text-surface-400 leading-relaxed">
-          <span className="font-semibold text-amber-400">Disclaimer:</span> This tool provides AI-generated technical analysis for educational and informational purposes only. Sentiquant is <span className="font-semibold text-amber-300">NOT a SEBI-registered investment advisor</span>. Nothing on this platform constitutes investment advice, a recommendation to buy or sell securities, or a solicitation of any kind. All data shown are technical reference levels only. Please conduct your own research and consult a SEBI-registered financial advisor before making any investment decisions.
+          <span className="font-semibold text-amber-400">Important:</span> All outputs are AI-generated technical observations based on publicly available price and news data. This is <span className="font-semibold text-amber-300">not a research report</span> under SEBI Research Analyst Regulations 2014, and does <span className="font-semibold text-amber-300">not constitute investment advice</span> under SEBI Investment Adviser Regulations 2013. SentiQuant is not a SEBI-registered entity. Technical readings describe market conditions, not recommendations to buy, sell or hold any security. Please conduct your own research and consult a SEBI-registered advisor before making any investment decisions.
         </p>
       </div>
 
       {/* ── 10. Timestamp ── */}
       <p className="text-xs text-surface-600 text-right">
-        Analysis generated {timeAgo(analysis.analysis_timestamp)}
+        Technical reading generated {timeAgo(analysis.analysis_timestamp)}
       </p>
     </div>
   )
