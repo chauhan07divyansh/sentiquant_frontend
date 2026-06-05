@@ -7,7 +7,6 @@ import type { RiskAppetite } from '@/types/stock.types'
 // ─────────────────────────────────────────────
 //  GENERIC BADGE
 // ─────────────────────────────────────────────
-
 const colorMap = {
   teal:    'bg-brand-cyan/10 border-brand-cyan/30 text-brand-cyan',
   indigo:  'bg-brand-blue/10 border-brand-blue/30 text-brand-blue',
@@ -64,9 +63,11 @@ export function Badge({
 }
 
 // ─────────────────────────────────────────────
-//  SIGNAL BADGE — maps SignalStrength → colors
+//  SIGNAL BADGE
+//  Legally safe labels — technical observations, not advice.
+//  "Bullish Setup" / "Bearish Setup" / "Neutral Setup"
+//  Never BUY / SELL / HOLD.
 // ─────────────────────────────────────────────
-
 const signalColorMap: Record<SignalStrength, BadgeColor> = {
   'strong-buy': 'success',
   'buy':        'teal',
@@ -76,51 +77,73 @@ const signalColorMap: Record<SignalStrength, BadgeColor> = {
   'unknown':    'neutral',
 }
 
+// Legally safe label map — describes technical conditions, not actions
 const signalLabelMap: Record<SignalStrength, string> = {
-  'strong-buy': 'Strong Buy',
-  'buy':        'Buy',
-  'hold':       'Hold',
-  'sell':       'Sell',
-  'avoid':      'Avoid',
+  'strong-buy': 'Strong Bullish Setup',
+  'buy':        'Bullish Setup',
+  'hold':       'Neutral Setup',
+  'sell':       'Bearish Setup',
+  'avoid':      'Weak Setup',
   'unknown':    'No Signal',
+}
+
+// Short labels for compact UI (tables, cards with limited space)
+const signalLabelShortMap: Record<SignalStrength, string> = {
+  'strong-buy': 'Bullish',
+  'buy':        'Bullish',
+  'hold':       'Neutral',
+  'sell':       'Bearish',
+  'avoid':      'Weak',
+  'unknown':    '—',
 }
 
 interface SignalBadgeProps {
   strength:   SignalStrength
   className?: string
   showDot?:   boolean
+  short?:     boolean   // use short label for compact spaces
 }
 
-export function SignalBadge({ strength, className, showDot = true }: SignalBadgeProps) {
+export function SignalBadge({ strength, className, showDot = true, short = false }: SignalBadgeProps) {
   return (
     <Badge
       color={signalColorMap[strength]}
       dot={showDot}
       className={cn('font-semibold', className)}
     >
-      {signalLabelMap[strength]}
+      {short ? signalLabelShortMap[strength] : signalLabelMap[strength]}
     </Badge>
   )
 }
 
 // ─────────────────────────────────────────────
-//  GRADE BADGE — investment grade
+//  GRADE BADGE
+//  Shows technical setup quality, not investment quality.
 // ─────────────────────────────────────────────
-
 const gradeColorMap: Record<InvestmentGrade, BadgeColor> = {
-  'A+ (Excellent)':   'success',
-  'A (Good)':         'teal',
-  'B (Average)':      'warning',
-  'C (Below Average)':'orange',
-  'D (Poor)':         'danger',
+  'A+ (Excellent)':    'success',
+  'A (Good)':          'teal',
+  'B (Average)':       'warning',
+  'C (Below Average)': 'orange',
+  'D (Poor)':          'danger',
 }
 
+// Short letter grades for compact display
 const gradeLabelMap: Record<InvestmentGrade, string> = {
-  'A+ (Excellent)':   'A+',
-  'A (Good)':         'A',
-  'B (Average)':      'B',
-  'C (Below Average)':'C',
-  'D (Poor)':         'D',
+  'A+ (Excellent)':    'A+',
+  'A (Good)':          'A',
+  'B (Average)':       'B',
+  'C (Below Average)': 'C',
+  'D (Poor)':          'D',
+}
+
+// Full labels that describe technical setup, not investment quality
+const gradeFullLabelMap: Record<InvestmentGrade, string> = {
+  'A+ (Excellent)':    'Strong Technical Setup',
+  'A (Good)':          'Moderate Technical Setup',
+  'B (Average)':       'Mixed Technical Setup',
+  'C (Below Average)': 'Weak Technical Setup',
+  'D (Poor)':          'Very Weak Technical Setup',
 }
 
 interface GradeBadgeProps {
@@ -135,7 +158,7 @@ export function GradeBadge({ grade, showFull = false, className }: GradeBadgePro
       color={gradeColorMap[grade]}
       className={cn('font-bold tracking-wider', className)}
     >
-      {showFull ? grade : gradeLabelMap[grade]}
+      {showFull ? gradeFullLabelMap[grade] : gradeLabelMap[grade]}
     </Badge>
   )
 }
@@ -143,7 +166,6 @@ export function GradeBadge({ grade, showFull = false, className }: GradeBadgePro
 // ─────────────────────────────────────────────
 //  RISK BADGE — portfolio risk appetite
 // ─────────────────────────────────────────────
-
 const riskColorMap: Record<RiskAppetite, BadgeColor> = {
   LOW:    'success',
   MEDIUM: 'warning',
@@ -170,7 +192,7 @@ export function RiskBadge({ risk, className }: RiskBadgeProps) {
 }
 
 // ─────────────────────────────────────────────
-//  LIVE BADGE — for real-time indicators
+//  LIVE BADGE
 // ─────────────────────────────────────────────
 export function LiveBadge({ className }: { className?: string }) {
   return (
@@ -192,7 +214,6 @@ export function SystemBadge({
 }) {
   return (
     <Badge color={type === 'Swing' ? 'teal' : 'indigo'} className={className}>
-      {/* UX: aria-hidden on decorative emoji */}
       {type === 'Swing'
         ? <><span aria-hidden="true">⚡</span>{' '}Swing</>
         : <><span aria-hidden="true">📈</span>{' '}Position</>}
