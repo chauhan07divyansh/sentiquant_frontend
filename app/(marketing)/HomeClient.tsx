@@ -1,5 +1,4 @@
 'use client'
-
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
@@ -12,7 +11,6 @@ import { useMagneticHover } from '@/lib/useMagneticHover'
 // ─────────────────────────────────────────────
 //  DATA
 // ─────────────────────────────────────────────
-
 const HOW_IT_WORKS = [
   {
     step: '01',
@@ -41,8 +39,8 @@ const HOW_IT_WORKS = [
         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" />
       </svg>
     ),
-    title: 'Get clear insights and signals',
-    body: 'Entry, stop-loss, 3 targets, a 0–100 score, and a plain-English thesis — no jargon, no noise.',
+    title: 'Get clear technical readings',
+    body: 'Technical entry zone, support level, 3 resistance levels, a 0–100 score, and a plain-English summary — no jargon, no noise.',
   },
 ] as const
 
@@ -74,7 +72,6 @@ function GoogleSignInButton() {
 function FloatingMockup() {
   const chartBars = [38, 52, 44, 61, 70, 64, 78, 85]
   const tilt = use3DTilt({ maxTilt: 10, perspective: 1000, scale: 1.02 })
-
   return (
     <div ref={tilt.ref} style={tilt.style} className="relative w-[300px] xl:w-[320px] select-none card-3d glow-3d shadow-3d" aria-hidden="true">
       <div className="absolute -bottom-8 -right-8 w-[240px] card rounded-xl p-4 rotate-[-5deg] opacity-50 blur-[1.5px] pointer-events-none">
@@ -95,7 +92,6 @@ function FloatingMockup() {
           </div>
         </div>
       </div>
-
       <div className="relative card rounded-xl overflow-hidden p-5 flex flex-col gap-4 shadow-2xl hero-entry-mockup animate-float">
         <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-brand-blue to-brand-cyan" />
         <div className="flex items-start justify-between gap-3 pt-1">
@@ -125,9 +121,9 @@ function FloatingMockup() {
         </div>
         <div className="grid grid-cols-3 gap-1.5">
           {[
-            { label: 'Entry',  val: '₹3,780', cls: 'text-brand-cyan'  },
-            { label: 'Stop-L', val: '₹3,650', cls: 'text-rose-400'    },
-            { label: 'Target', val: '₹3,940', cls: 'text-emerald-400' },
+            { label: 'Entry Zone', val: '₹3,780', cls: 'text-brand-cyan'  },
+            { label: 'Support',    val: '₹3,650', cls: 'text-rose-400'    },
+            { label: 'R1',         val: '₹3,940', cls: 'text-emerald-400' },
           ].map((t) => (
             <div key={t.label} className="flex flex-col gap-0.5 rounded-lg px-2 py-2 bg-surface-800/40 border border-surface-700/30">
               <span className="text-[8px] text-surface-500 uppercase tracking-wider font-medium">{t.label}</span>
@@ -138,7 +134,7 @@ function FloatingMockup() {
         <div className="flex items-center justify-between pt-2 border-t border-surface-800/50">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-            BUY Signal
+            Bullish Setup
           </span>
           <span className="text-[9px] text-surface-600 font-medium">AI · &lt;60s</span>
         </div>
@@ -162,9 +158,7 @@ function StockAnalysisShowcase() {
         .sq-ann:nth-child(4){animation-delay:.45s}
         .sq-dash{stroke-dasharray:6 4;animation:sq-dash 1.2s linear infinite}
       `}</style>
-
       <div className="relative" style={{ height: 500 }}>
-        {/* Animated SVG connectors */}
         <svg width="100%" height="500" viewBox="0 0 680 500" style={{ position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:5 }}>
           <defs>
             <marker id="sq1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
@@ -193,13 +187,13 @@ function StockAnalysisShowcase() {
           <div className="h-1 rounded-full mt-2 mb-2 overflow-hidden" style={{ background:'rgba(255,255,255,.08)' }}>
             <div className="h-full rounded-full" style={{ width:'88%', background:'linear-gradient(90deg,#3b82f6,#10b981)' }}/>
           </div>
-          <span className="text-[11px] font-semibold rounded-md px-2 py-0.5 border" style={{ color:'#10b981', borderColor:'rgba(16,185,129,.3)' }}>A+ Excellent</span>
+          <span className="text-[11px] font-semibold rounded-md px-2 py-0.5 border" style={{ color:'#10b981', borderColor:'rgba(16,185,129,.3)' }}>Strong Technical Setup</span>
         </div>
 
         <div className="sq-ann absolute left-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(16,185,129,.3)', top:280, zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Signal</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Technical Reading</p>
           <div className="rounded-lg py-3 text-center mb-2 border" style={{ background:'rgba(16,185,129,.1)', borderColor:'rgba(16,185,129,.22)' }}>
-            <span className="font-mono font-bold text-2xl tracking-widest" style={{ color:'#10b981' }}>BUY</span>
+            <span className="font-mono font-bold text-xl tracking-widest" style={{ color:'#10b981' }}>BULLISH</span>
           </div>
           <p className="text-[11px] text-slate-500">Swing · 1–4 weeks</p>
         </div>
@@ -236,16 +230,16 @@ function StockAnalysisShowcase() {
               <div className="rounded-full overflow-hidden mb-1.5" style={{ height:3, background:'rgba(255,255,255,.06)' }}>
                 <div className="h-full rounded-full" style={{ width:'88%', background:'linear-gradient(90deg,#3b82f6,#10b981)' }}/>
               </div>
-              <span className="rounded border px-1.5 py-0.5" style={{ fontSize:9, color:'#10b981', borderColor:'rgba(16,185,129,.22)' }}>A+ (EXCELLENT)</span>
+              <span className="rounded border px-1.5 py-0.5" style={{ fontSize:9, color:'#10b981', borderColor:'rgba(16,185,129,.22)' }}>STRONG TECHNICAL SETUP</span>
             </div>
             <div className="rounded-lg py-3 text-center border" style={{ background:'rgba(16,185,129,.1)', borderColor:'rgba(16,185,129,.22)' }}>
-              <span className="font-mono font-bold tracking-widest" style={{ fontSize:18, color:'#10b981' }}>BUY</span>
+              <span className="font-mono font-bold tracking-widest" style={{ fontSize:18, color:'#10b981' }}>BULLISH SETUP</span>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
               {[
-                { label:'Entry', val:'₹2,843', c:'#60a5fa', bg:'rgba(59,130,246,.08)' },
-                { label:'T1',    val:'₹3,180', c:'#10b981', bg:'rgba(16,185,129,.08)' },
-                { label:'Stop',  val:'₹2,640', c:'#f87171', bg:'rgba(248,113,113,.08)' },
+                { label:'Entry Zone', val:'₹2,843', c:'#60a5fa', bg:'rgba(59,130,246,.08)' },
+                { label:'R1',         val:'₹3,180', c:'#10b981', bg:'rgba(16,185,129,.08)' },
+                { label:'Support',    val:'₹2,640', c:'#f87171', bg:'rgba(248,113,113,.08)' },
               ].map(x => (
                 <div key={x.label} className="rounded-lg p-2 text-center" style={{ background:x.bg }}>
                   <p className="uppercase text-slate-600 mb-1" style={{ fontSize:8 }}>{x.label}</p>
@@ -258,18 +252,18 @@ function StockAnalysisShowcase() {
 
         {/* Right annotation cards */}
         <div className="sq-ann absolute right-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(96,165,250,.3)', top:90, zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Entry zone</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Technical Entry Zone</p>
           <p className="font-mono font-bold text-2xl text-white">₹2,843</p>
           <p className="text-slate-500 mt-1" style={{ fontSize:11 }}>+0.0% vs current</p>
-          <p className="text-slate-400 mt-1.5 leading-relaxed" style={{ fontSize:11 }}>Watch for dips before entering</p>
+          <p className="text-slate-400 mt-1.5 leading-relaxed" style={{ fontSize:11 }}>Historical zone where buyers have been active</p>
         </div>
 
         <div className="sq-ann absolute right-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(248,113,113,.3)', top:285, zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Stop loss</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Technical Support</p>
           <p className="font-mono font-bold text-2xl" style={{ color:'#f87171' }}>₹2,640</p>
           <div className="flex items-center gap-1.5 mt-1.5">
             <div className="w-2 h-2 rounded-full" style={{ background:'rgba(248,113,113,.7)' }}/>
-            <p className="text-slate-400" style={{ fontSize:11 }}>−7.1% max loss</p>
+            <p className="text-slate-400" style={{ fontSize:11 }}>Technical support level</p>
           </div>
         </div>
       </div>
@@ -278,8 +272,8 @@ function StockAnalysisShowcase() {
       <div className="flex justify-center mt-6">
         <div className="inline-flex items-center rounded-full overflow-hidden border" style={{ background:'#0f172a', borderColor:'rgba(255,255,255,.08)' }}>
           {[
-            { dot:'#10b981', label:'Upside', val:'+11.8%', valC:'#f1f5f9' },
-            { dot:'#f87171', label:'Downside', val:'−7.1%', valC:'#f1f5f9' },
+            { dot:'#10b981', label:'To R1', val:'+11.8%', valC:'#f1f5f9' },
+            { dot:'#f87171', label:'To Support', val:'−7.1%', valC:'#f1f5f9' },
             { dot:null, label:'Risk:Reward', val:'1 : 1.66', valC:'#fbbf24' },
           ].map((x, i) => (
             <div key={x.label} className="flex items-center gap-2 px-5 py-2.5" style={{ borderRight: i < 2 ? '1px solid rgba(255,255,255,.06)' : undefined }}>
@@ -311,7 +305,6 @@ function PortfolioShowcase() {
   return (
     <div className="relative w-full">
       <div className="relative" style={{ height: 520 }}>
-        {/* Animated SVG connectors */}
         <svg width="100%" height="520" viewBox="0 0 680 520" style={{ position:'absolute', top:0, left:0, pointerEvents:'none', zIndex:5 }}>
           <defs>
             <marker id="pq1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
@@ -380,7 +373,7 @@ function PortfolioShowcase() {
             </div>
             <div>
               <div className="grid grid-cols-4 gap-1 pb-1.5 border-b mb-1.5" style={{ borderColor:'rgba(255,255,255,.06)' }}>
-                {['Stock','Alloc','Stop','T1'].map((h,i) => (
+                {['Stock','Alloc','Support','R1'].map((h,i) => (
                   <p key={h} className="uppercase tracking-wider text-slate-600" style={{ fontSize:8, textAlign: i > 0 ? 'right' : 'left' }}>{h}</p>
                 ))}
               </div>
@@ -402,14 +395,14 @@ function PortfolioShowcase() {
 
         {/* Right annotation cards */}
         <div className="sq-ann absolute right-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(248,113,113,.3)', top:100, zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Stop loss</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Technical Support</p>
           <p className="font-mono font-bold text-2xl" style={{ color:'#f87171' }}>Per stock</p>
-          <p className="text-slate-400 mt-2 leading-relaxed" style={{ fontSize:11 }}>AI-calculated for each. Limits max loss.</p>
+          <p className="text-slate-400 mt-2 leading-relaxed" style={{ fontSize:11 }}>AI-calculated support level for each position.</p>
         </div>
 
         <div className="sq-ann absolute right-0 w-44 rounded-2xl p-4 border" style={{ background:'#0f172a', borderColor:'rgba(16,185,129,.3)', top:295, zIndex:10 }}>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Targets (IOC)</p>
-          {(['T1','T2','T3'] as const).map((t, i) => (
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Resistance Levels (IOC)</p>
+          {(['R1','R2','R3'] as const).map((t, i) => (
             <div key={t} className="flex justify-between items-center py-1.5 border-b last:border-0" style={{ borderColor:'rgba(255,255,255,.05)' }}>
               <span className="text-slate-500" style={{ fontSize:11 }}>{t}</span>
               <span className="font-mono font-semibold" style={{ fontSize:13, color:'#10b981' }}>{['₹149','₹158','₹167'][i]}</span>
@@ -442,19 +435,15 @@ function PortfolioShowcase() {
 //  HOME CLIENT
 // ─────────────────────────────────────────────
 export function HomeClient() {
-
   const magneticCta = useMagneticHover<HTMLAnchorElement>(0.22)
-
   const { ref: statsRef,    inView: statsInView    } = useInView<HTMLDivElement>(0.5)
   const { ref: howRef,      inView: howInView      } = useInView<HTMLDivElement>(0.05)
   const { ref: showcaseRef, inView: showcaseInView } = useInView<HTMLDivElement>(0.05)
   const { ref: seoRef,      inView: seoInView      } = useInView<HTMLDivElement>(0.05)
   const { ref: faqRef,      inView: faqInView      } = useInView<HTMLDivElement>(0.05)
   const { ref: ctaRef,      inView: ctaInView      } = useInView<HTMLDivElement>(0.2)
-
   const counter2 = useCountUp(250, 1800)
   const counter3 = useCountUp(60,  1500)
-
   useEffect(() => {
     if (statsInView) { counter2.run(); counter3.run() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -462,7 +451,6 @@ export function HomeClient() {
 
   return (
     <div className="flex flex-col overflow-hidden">
-
       {/* ── HERO ── */}
       <section className="relative min-h-[92vh] flex items-center px-4 sm:px-6 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top, rgba(59,130,246,0.22), transparent 60%), radial-gradient(ellipse at bottom, rgba(6,182,212,0.12), transparent 70%)' }} />
@@ -471,7 +459,6 @@ export function HomeClient() {
           <div className="absolute bottom-[-200px] left-1/2 -translate-x-1/2 w-[900px] h-[800px] bg-brand-cyan opacity-[0.09] blur-[160px]" />
         </div>
         <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-
         <div className="relative z-10 max-w-6xl mx-auto w-full py-20 sm:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <div className="flex flex-col items-center lg:items-start gap-7 text-center lg:text-left">
@@ -484,7 +471,7 @@ export function HomeClient() {
                 <span className="bg-gradient-to-r from-brand-blue to-brand-cyan bg-clip-text text-transparent">decisions with AI</span>
               </h1>
               <p className="hero-entry-3 text-lg text-surface-400 max-w-xl leading-relaxed">
-                Instant AI-powered analysis of Indian stocks — signals, targets, and risk insights in under 60 seconds.
+                Instant AI-powered technical analysis of Indian stocks — technical readings, reference levels, and risk indicators in under 60 seconds.
               </p>
               <div className="hero-entry-4 flex flex-col sm:flex-row gap-4">
                 <Link ref={magneticCta.ref} style={magneticCta.style} href="/stocks" className="px-8 py-3 rounded-xl bg-gradient-to-r from-brand-blue to-brand-cyan text-white font-semibold text-sm hover:opacity-90 hover:shadow-[0_0_28px_rgba(59,130,246,0.40)] transition-all duration-200 shadow-[0_0_20px_rgba(59,130,246,0.20)]">
@@ -511,8 +498,8 @@ export function HomeClient() {
         <div ref={statsRef} className="relative max-w-5xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-2 sm:grid-cols-3 gap-8">
           {[
             { display: statsInView ? `${counter2.count}+`   : '250+',  label: 'NSE & BSE stocks covered' },
-            { display: statsInView ? `< ${counter3.count}s` : '< 60s', label: 'To a full AI analysis' },
-            { display: 'A–D', label: 'Grade assigned every stock' },
+            { display: statsInView ? `< ${counter3.count}s` : '< 60s', label: 'To a full AI technical reading' },
+            { display: 'A–D', label: 'Technical grade assigned every stock' },
           ].map(({ display, label }, i) => (
             <div key={label} className={cn('group relative flex flex-col items-center gap-2 text-center transition-all duration-300 scroll-reveal', statsInView && 'in-view', STAGGER[i])}>
               <span className="font-display font-bold text-3xl text-white tabular-nums group-hover:scale-105 transition-transform">{display}</span>
@@ -528,8 +515,8 @@ export function HomeClient() {
         <div className="max-w-4xl mx-auto flex flex-col gap-14">
           <div className={cn('flex flex-col items-center gap-4 text-center scroll-reveal', howInView && 'in-view')}>
             <span className="text-xs font-semibold text-brand-cyan uppercase tracking-widest">How it works</span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-white">Stock prediction AI — in 3 simple steps</h2>
-            <p className="text-sm text-surface-400 max-w-sm leading-relaxed">No learning curve. No jargon. Just enter a stock and get your answer.</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-white">AI technical analysis — in 3 simple steps</h2>
+            <p className="text-sm text-surface-400 max-w-sm leading-relaxed">No learning curve. No jargon. Just enter a stock and get your technical reading.</p>
           </div>
           <div ref={howRef} className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {HOW_IT_WORKS.map((step, i) => (
@@ -561,8 +548,8 @@ export function HomeClient() {
         <div className="max-w-5xl mx-auto flex flex-col gap-10">
           <div className={cn('flex flex-col items-center gap-3 text-center scroll-reveal', showcaseInView && 'in-view')}>
             <span className="text-xs font-semibold text-brand-cyan uppercase tracking-widest">AI analysis</span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-white tracking-tight">AI analysis. Every stock. Under 60 seconds.</h2>
-            <p className="text-sm text-surface-400 max-w-md leading-relaxed">No research required. No jargon. Just a clear signal and exactly where to act.</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-bold text-white tracking-tight">AI technical analysis. Every stock. Under 60 seconds.</h2>
+            <p className="text-sm text-surface-400 max-w-md leading-relaxed">No research required. No jargon. Just a clear technical reading with reference levels.</p>
           </div>
           <div className={cn('scroll-reveal', showcaseInView && 'in-view', 'delay-150')}>
             <StockAnalysisShowcase />
@@ -581,7 +568,7 @@ export function HomeClient() {
           <div className="flex flex-col items-center gap-3 text-center">
             <span className="text-xs font-semibold text-brand-cyan uppercase tracking-widest">Portfolio builder</span>
             <h2 className="font-display text-3xl sm:text-4xl font-bold text-white tracking-tight">A full NSE portfolio. Built by AI in 2 minutes.</h2>
-            <p className="text-sm text-surface-400 max-w-md leading-relaxed">Enter your budget and risk level. Get 10 positions — with allocation, stop loss, and 3 targets per stock.</p>
+            <p className="text-sm text-surface-400 max-w-md leading-relaxed">Enter your budget and risk level. Get 10 positions — with allocation, technical support level, and 3 resistance levels per stock.</p>
           </div>
           <PortfolioShowcase />
           <div className="flex justify-center">
@@ -596,12 +583,12 @@ export function HomeClient() {
       <section className="border-t border-surface-800 bg-surface-900/20 py-16 px-4 sm:px-6">
         <div ref={seoRef} className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           <div className={cn('flex flex-col gap-5 scroll-reveal', seoInView && 'in-view')}>
-            <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">The AI stock analysis tool built for Indian markets</h2>
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">The AI technical analysis tool built for Indian markets</h2>
             <p className="text-sm text-surface-400 leading-relaxed">
-              Sentiquant is the only AI stock analysis platform built specifically for <strong className="text-surface-300">NSE and BSE stocks</strong>. Where other tools surface raw data, Sentiquant synthesises technicals, fundamentals, and real-time sentiment into a single, actionable output — an entry price, a stop-loss, three price targets, and a plain-English thesis.
+              Sentiquant is an AI technical analysis platform built specifically for <strong className="text-surface-300">NSE and BSE stocks</strong>. Where other tools surface raw data, Sentiquant synthesises technicals, fundamentals, and real-time sentiment into a single output — a technical entry zone, a support level, three resistance levels, and a plain-English technical summary.
             </p>
             <p className="text-sm text-surface-400 leading-relaxed">
-              Whether you&apos;re looking for the <strong className="text-surface-300">best stocks to buy in India in 2026</strong>, analysing an intraday setup, or building a long-term portfolio — Sentiquant gives you the signal, the grade, and the reasoning behind it.
+              Whether you&apos;re analyzing an intraday setup or building a long-term portfolio — Sentiquant gives you the technical reading, the grade, and the reasoning behind it. All outputs are AI-generated technical observations. Not SEBI-registered investment advice.
             </p>
             <Link href="/analysis" className="inline-flex items-center gap-1.5 text-sm text-brand-cyan hover:underline underline-offset-4 font-medium w-fit">
               Browse AI analysis for top NSE stocks →
@@ -627,15 +614,15 @@ export function HomeClient() {
           <span className="text-xs font-semibold text-brand-cyan uppercase tracking-widest">FAQ</span>
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">Common questions</h2>
         </div>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context':'https://schema.org','@type':'FAQPage',mainEntity:[{'{@type}':'Question',name:'What is the best AI tool for stock analysis in India?',acceptedAnswer:{'@type':'Answer',text:'Sentiquant combines technical indicators, fundamental scoring, and real-time sentiment to give you an entry price, stop-loss, 3 targets, and a 0–100 grade for any Indian stock in under 60 seconds.'}},{'{@type}':'Question',name:'Is Sentiquant free to use?',acceptedAnswer:{'@type':'Answer',text:'Yes. The free plan includes 10 analyses per day — no credit card required.'}},{'{@type}':'Question',name:'Is Sentiquant financial advice?',acceptedAnswer:{'@type':'Answer',text:'No. Sentiquant provides AI-generated analysis only. It is not SEBI-registered advice.'}}] }) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context':'https://schema.org','@type':'FAQPage',mainEntity:[{'@type':'Question',name:'What is the best AI tool for stock analysis in India?',acceptedAnswer:{'@type':'Answer',text:'Sentiquant combines technical indicators, fundamental scoring, and real-time sentiment to give you a technical entry zone, support level, 3 resistance levels, and a 0–100 grade for any Indian stock in under 60 seconds. All outputs are AI-generated technical observations only.'}},{'@type':'Question',name:'Is Sentiquant free to use?',acceptedAnswer:{'@type':'Answer',text:'Yes. The free plan includes 10 analyses per day — no credit card required.'}},{'@type':'Question',name:'Is Sentiquant financial advice?',acceptedAnswer:{'@type':'Answer',text:'No. Sentiquant provides AI-generated technical analysis only. It is not a SEBI-registered Research Analyst or Investment Adviser.'}}] }) }} />
         <div ref={faqRef} className="flex flex-col divide-y divide-surface-800">
           {[
-            { q:'What is the best AI tool for stock analysis in India?', a:'Sentiquant is built specifically for NSE and BSE stocks. It combines technical indicators, fundamental scoring, and real-time sentiment to give you an entry price, stop-loss, 3 price targets, and a 0–100 grade for any Indian stock — in under 60 seconds.' },
-            { q:'How does Sentiquant analyse NSE stocks?', a:'Our AI scans each stock across three dimensions: technical analysis (RSI, MACD, moving averages, volume), fundamentals (revenue growth, margins, debt), and sentiment (news tone, institutional flow signals). These combine into a composite score and plain-English thesis.' },
+            { q:'What is the best AI tool for stock analysis in India?', a:'Sentiquant is built specifically for NSE and BSE stocks. It combines technical indicators, fundamental scoring, and real-time sentiment to give you a technical entry zone, support level, 3 resistance levels, and a 0–100 technical grade for any Indian stock — in under 60 seconds.' },
+            { q:'How does Sentiquant analyse NSE stocks?', a:'Our AI scans each stock across three dimensions: technical analysis (RSI, MACD, moving averages, volume), fundamentals (revenue growth, margins, debt), and sentiment (news tone, institutional flow signals). These combine into a composite technical score and plain-English summary.' },
             { q:'Is Sentiquant free to use?', a:'Yes. The free plan gives you 10 stock analyses per day — no credit card required. Sign up with Google in one click.' },
             { q:'What Indian stocks does Sentiquant cover?', a:'Sentiquant covers 250+ NSE and BSE stocks — large-caps like Reliance, HDFC Bank, TCS, Infosys, ICICI Bank, and mid-caps across banking, IT, pharma, auto, FMCG, and infrastructure sectors.' },
-            { q:'Can I use Sentiquant for swing trading NSE stocks?', a:'Yes. Swing Analysis mode is designed for 1–4 week NSE trades. You get a specific entry price, stop-loss, and 3 price targets based on current technical momentum and sentiment.' },
-            { q:'Is Sentiquant financial advice?', a:'No. Sentiquant provides AI-generated analysis to help you make more informed decisions. It is not SEBI-registered advice. Always conduct your own research before investing.' },
+            { q:'Can I use Sentiquant for swing trading NSE stocks?', a:'Yes. Swing Analysis mode is designed for 1–4 week NSE setups. You get a technical entry zone, support level, and 3 resistance levels based on current technical momentum and sentiment. These are technical reference levels, not personalised investment advice.' },
+            { q:'Is Sentiquant financial advice?', a:'No. Sentiquant provides AI-generated technical analysis to help you make more informed decisions. It is not a SEBI-registered Research Analyst or Investment Adviser under SEBI Regulations. Always conduct your own research before investing.' },
           ].map(({ q, a }, i) => (
             <details key={q} className={cn('group py-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden scroll-reveal', faqInView && 'in-view', STAGGER[i])}>
               <summary className="flex items-center justify-between gap-4 select-none">
@@ -658,16 +645,15 @@ export function HomeClient() {
             <br />
             <span className="bg-gradient-to-r from-brand-blue to-brand-cyan bg-clip-text text-transparent">for free</span>
           </h2>
-          <p className="text-surface-400 text-sm leading-relaxed max-w-sm">AI-grade analysis on any NSE or BSE stock. Signals, targets, risk insights — all in under 60 seconds.</p>
+          <p className="text-surface-400 text-sm leading-relaxed max-w-sm">AI-generated technical analysis on any NSE or BSE stock. Technical readings, reference levels, risk indicators — all in under 60 seconds.</p>
           <div className="flex flex-col sm:flex-row gap-3">
             <Link href="/stocks" className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-brand-blue to-brand-cyan text-white font-bold text-sm hover:opacity-90 transition-all duration-200">Try it now</Link>
             <Link href="/dashboard" className="px-8 py-3.5 rounded-xl border border-surface-700 text-surface-300 font-medium text-sm hover:border-surface-500 hover:text-white transition-all">View dashboard →</Link>
           </div>
           <GoogleSignInButton />
-          <p className="text-xs text-surface-700">Not financial advice. Always do your own research.</p>
+          <p className="text-xs text-surface-700">AI-generated technical analysis only. Not SEBI-registered advice. Always do your own research.</p>
         </div>
       </section>
-
     </div>
   )
 }
