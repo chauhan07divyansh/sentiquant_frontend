@@ -11,7 +11,7 @@ import { validateSwingForm, validatePositionForm, hasErrors } from '@/lib/utils/
 import { formatINR, formatINRCompact } from '@/lib/utils/formatters'
 import { cn } from '@/lib/utils/cn'
 import { track } from '@/lib/analytics'
-import { TIME_PERIOD_OPTIONS, RISK_LABELS } from '@/types/portfolio.types'
+import { RISK_LABELS } from '@/types/portfolio.types'
 import type { PortfolioJob } from '@/lib/api/portfolio.api'
 import type { RiskAppetite } from '@/types/stock.types'
 import type { PortfolioResponse } from '@/types/portfolio.types'
