@@ -5,7 +5,7 @@ import { SuccessToast }  from '@/components/ui/SuccessToast'
 import { useCreateSwingPortfolio, useCreatePositionPortfolio } from '@/hooks/useQueryHooks'
 import { usePortfolioStore } from '@/store'
 import { Button } from '@/components/ui/Button'
-import { BudgetInput, Select } from '@/components/ui/Input'
+import { BudgetInput } from '@/components/ui/Input'
 import { ErrorState } from '@/components/common/DegradedBanner'
 import { validateSwingForm, validatePositionForm, hasErrors } from '@/lib/utils/validators'
 import { formatINR, formatINRCompact } from '@/lib/utils/formatters'
@@ -485,7 +485,6 @@ export default function PortfolioPage() {
     swingMutation.reset(); positionMutation.reset()
   }
 
-  const timePeriodLabel = TIME_PERIOD_OPTIONS.find((o) => o.value === timePeriod)?.label ?? '18 months'
   const isGenerating = mutation.isPending || (currentJob !== null && currentJob.status !== 'complete' && currentJob.status !== 'failed')
 
   return (
