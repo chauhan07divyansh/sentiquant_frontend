@@ -5,7 +5,7 @@
 
 import React from "react";
 
-export default function WhyThisScore({ why, score, signal }) {
+export default function WhyThisScore({ why, score }) {
   if (!why) return null;
 
   const { verdict, in_favor = [], against = [], watch_outs = [], context = [] } = why;
@@ -79,7 +79,7 @@ export default function WhyThisScore({ why, score, signal }) {
       {/* Honest footer — sets expectations, reinforces transparency */}
       <p className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400 leading-relaxed">
         This breakdown shows the main technical and news signals behind the score.
-        It’s an explanation of the analysis, not investment advice.
+        It's an explanation of the analysis, not investment advice.
       </p>
     </div>
   );
@@ -90,7 +90,7 @@ export default function WhyThisScore({ why, score, signal }) {
 
      import WhyThisScore from "@/components/WhyThisScore";
      ...
-     <WhyThisScore why={data.why} score={data.swing_score} signal={data.trading_plan?.entry_signal} />
+     <WhyThisScore why={data.why} score={data.swing_score} />
 
    `data` is the object from your analyze endpoint. The `why` field is now
    included automatically by the backend. If an older cached result lacks
