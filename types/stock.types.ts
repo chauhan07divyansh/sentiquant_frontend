@@ -88,20 +88,31 @@ export interface FundamentalsData {
 export interface StockAnalysis {
   symbol: string
   company_name: string
-  analysis_timestamp: string    // ISO string
+  analysis_timestamp: string // ISO string
   system_type: SystemType
-  overall_score: number         // 0–100
+  overall_score: number // 0–100
   investment_grade: InvestmentGrade
   current_price: number
   target_price: number
-  potential_return: number      // percentage, can be negative
+  potential_return: number // percentage, can be negative
   trading_plan: TradingPlan
   technical_indicators: TechnicalIndicators
   fundamentals: FundamentalsData
   sentiment: SentimentData
-  time_horizon: string          // "1-4 weeks" or "6-18 months"
+  time_horizon: string // "1-4 weeks" or "6-18 months"
+
+  // Backend metadata
   source?: 'precomputed' | 'cache' | 'live'
   precomputed_by?: 'worker'
+
+  // Backend-generated explanation for the analysis
+  why?: {
+    verdict: string
+    in_favor: string[]
+    against: string[]
+    watch_outs: string[]
+    context: string[]
+  }
 }
 
 // ── Compare response (GET /api/compare/:symbol) ─
