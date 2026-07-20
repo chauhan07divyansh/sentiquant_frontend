@@ -355,7 +355,13 @@ function buildReasoning(analysis: StockAnalysis): ReasoningPoint[] {
 
   return points
 }
-
+function pointsFromWhy(why: NonNullable<StockAnalysis['why']>): ReasoningPoint[] {
+  return [
+    ...why.in_favor.map(t => ({ label: 'Signal', text: t, status: 'bullish' as const })),
+    ...why.against.map(t => ({ label: 'Signal', text: t, status: 'bearish' as const })),
+    ...why.watch_outs.map(t => ({ label: 'Watch', text: t, status: 'neutral' as const })),
+  ]
+}
 // ─── Collapsible Section ──────────────────────────────────────────────────────
 function Section({ title, icon, children, defaultOpen = false }: {
   title: string; icon: ReactNode; children: ReactNode; defaultOpen?: boolean
@@ -735,7 +741,7 @@ export function AnalysisView({
   onSwitchTab?: (tab: 'swing' | 'position' | 'compare') => void
 }) {
   const signal     = classifySignal(analysis.trading_plan.signal)
-  const points     = buildReasoning(analysis)
+  const points = analysis.why ? pointsFromWhy(analysis.why) : buildReasoning(analysis)
   const bullishPts = points.filter(p => p.status === 'bullish')
   const cautionPts = points.filter(p => p.status !== 'bullish')
   const bullish    = bullishPts.length
