@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentiquant — AI-Powered Stock Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Variables ───────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #090c10;
+      --surface:    #0f1318;
+      --surface-2:  #141920;
+      --border:     rgba(255, 255, 255, 0.07);
+      --border-h:   rgba(255, 255, 255, 0.14);
+      --accent:     #00d4aa;
+      --accent-dim: rgba(0, 212, 170, 0.12);
+      --blue:       #3b82f6;
+      --text:       #e8eaf0;
+      --muted:      #6b7280;
+      --muted-2:    #4b5563;
+      --radius:     12px;
+      --radius-sm:  8px;
+      --error:      #ef4444;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    /* ── Auth Card ───────────────────────────── */
+    .auth-wrapper {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    /* Logo */
+    .logo {
+      display: block;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      background: linear-gradient(90deg, #3b82f6, #00d4aa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+      letter-spacing: -0.02em;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+    }
+
+    /* ── Tab switcher ─────────────────────────── */
+    .tab-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      margin-bottom: 28px;
+    }
+
+    .tab-btn {
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--surface-2);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    /* ── Section heading ─────────────────────── */
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .section-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 22px;
+    }
+
+    /* ── Form ────────────────────────────────── */
+    .form { display: flex; flex-direction: column; gap: 16px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #9ca3af;
+      letter-spacing: 0.01em;
+    }
+
+    .field input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .field input::placeholder { color: var(--muted-2); }
+
+    .field input:focus {
+      border-color: rgba(0, 212, 170, 0.35);
+      box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.08);
+    }
+
+    .field input.has-error {
+      border-color: rgba(239, 68, 68, 0.5);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+    }
+
+    /* password wrapper for show/hide */
+    .pass-wrap { position: relative; }
+
+    .pass-wrap input { padding-right: 40px; width: 100%; }
+
+    .pass-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      padding: 2px;
+      transition: color 0.15s ease;
+    }
+
+    .pass-toggle:hover { color: var(--text); }
+
+    .field-error {
+      font-size: 11px;
+      color: #f87171;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── Alert banners ───────────────────────── */
+    .alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 11px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .alert.error {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+    }
+
+    .alert.success {
+      background: rgba(0, 212, 170, 0.08);
+      border: 1px solid rgba(0, 212, 170, 0.2);
+      color: #6ee7d4;
+    }
+
+    .alert.info {
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
+
+    /* ── Submit button ───────────────────────── */
+    .btn-submit {
+      width: 100%;
+      padding: 11px 16px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: linear-gradient(90deg, #3b82f6, #00d4aa);
+      color: #fff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.18s ease, box-shadow 0.18s ease, transform 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      opacity: 0.92;
+      box-shadow: 0 0 24px rgba(59, 130, 246, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    /* ── Divider ─────────────────────────────── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted-2);
+      font-size: 12px;
+      margin: 4px 0;
+    }
+
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Footer link ─────────────────────────── */
+    .auth-footer {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 20px;
+    }
+
+    .auth-footer button {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .auth-footer button:hover { color: var(--blue); }
+
+    /* ── Spinner ─────────────────────────────── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── Hidden ──────────────────────────────── */
+    .hidden { display: none !important; }
+
+    /* ── Checking session overlay ────────────── */
+    .session-check {
+      text-align: center;
+      padding: 40px 0;
+    }
+
+    .session-check .spinner {
+      width: 28px;
+      height: 28px;
+      margin: 0 auto 14px;
+      border-width: 2.5px;
+    }
+
+    .session-check p {
+      font-size: 14px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="auth-wrapper">
+    <span class="logo">Sentiquant</span>
+
+    <!-- Session check overlay (shown briefly on load) -->
+    <div class="card" id="sessionCheckCard">
+      <div class="session-check">
+        <div class="spinner"></div>
+        <p>Checking session…</p>
+      </div>
+    </div>
+
+    <!-- Auth card (shown after session check) -->
+    <div class="card hidden" id="authCard">
+
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tabLogin" onclick="switchTab('login')">Sign in</button>
+        <button class="tab-btn" id="tabSignup" onclick="switchTab('signup')">Create account</button>
+      </div>
+
+      <!-- ── LOGIN FORM ───────────────────────── -->
+      <div id="loginSection">
+        <p class="section-title">Welcome back</p>
+        <p class="section-sub">Sign in to your Sentiquant account</p>
+
+        <div id="loginAlert" class="alert error hidden"></div>
+
+        <form class="form" id="loginForm" onsubmit="handleLogin(event)" novalidate>
+          <div class="field">
+            <label for="loginEmail">Email address</label>
+            <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+            <span class="field-error hidden" id="loginEmailErr"></span>
+          </div>
+
+          <div class="field">
+            <label for="loginPassword">Password</label>
+            <div class="pass-wrap">
+              <input id="loginPassword" type="password" placeholder="Your password" autocomplete="current-password" />
+              <button type="button" class="pass-toggle" onclick="togglePass('loginPassword', this)" aria-label="Toggle password visibility">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" class="eye-icon">
+                  <path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z"/><circle cx="8" cy="8" r="2"/>
+                </svg>
+              </button>
+            </div>
+            <span class="field-error hidden" id="loginPasswordErr"></span>
+          </div>
+
+          <button type="submit" class="btn-submit" id="loginBtn">Sign in</button>
+        </form>
+      </div>
+
+      <!-- ── SIGNUP FORM ──────────────────────── -->
+      <div id="signupSection" class="hidden">
+        <p class="section-title">Create account</p>
+        <p class="section-sub">Start analysing stocks with AI today</p>
+
+        <div id="signupAlert" class="alert error hidden"></div>
+
+        <form class="form" id="signupForm" onsubmit="handleSignup(event)" novalidate>
+          <div class="field">
+            <label for="signupName">Full name</label>
+            <input id="signupName" type="text" placeholder="Your name" autocomplete="name" />
+            <span class="field-error hidden" id="signupNameErr"></span>
+          </div>
+
+          <div class="field">
+            <label for="signupEmail">Email address</label>
+            <input id="signupEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+            <span class="field-error hidden" id="signupEmailErr"></span>
+          </div>
+
+          <div class="field">
+            <label for="signupPassword">Password</label>
+            <div class="pass-wrap">
+              <input id="signupPassword" type="password" placeholder="At least 8 characters" autocomplete="new-password" />
+              <button type="button" class="pass-toggle" onclick="togglePass('signupPassword', this)" aria-label="Toggle password visibility">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" class="eye-icon">
+                  <path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z"/><circle cx="8" cy="8" r="2"/>
+                </svg>
+              </button>
+            </div>
+            <span class="field-error hidden" id="signupPasswordErr"></span>
+          </div>
+
+          <div class="field">
+            <label for="signupConfirm">Confirm password</label>
+            <div class="pass-wrap">
+              <input id="signupConfirm" type="password" placeholder="Re-enter password" autocomplete="new-password" />
+              <button type="button" class="pass-toggle" onclick="togglePass('signupConfirm', this)" aria-label="Toggle password visibility">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" class="eye-icon">
+                  <path d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z"/><circle cx="8" cy="8" r="2"/>
+                </svg>
+              </button>
+            </div>
+            <span class="field-error hidden" id="signupConfirmErr"></span>
+          </div>
+
+          <button type="submit" class="btn-submit" id="signupBtn">Create account</button>
+        </form>
+      </div>
+
+    </div><!-- /authCard -->
+
+    <p class="auth-footer" id="authFooter">
+      Don't have an account? <button onclick="switchTab('signup')">Create one free</button>
+    </p>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:5000/api';
+
+    // ── Helpers ────────────────────────────────
+
+    function $(id) { return document.getElementById(id); }
+
+    function setAlert(id, type, msg) {
+      const el = $(id);
+      el.className = `alert ${type}`;
+      el.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="flex-shrink:0;margin-top:1px">
+          ${type === 'error'
+            ? '<circle cx="7" cy="7" r="5.5"/><path d="M7 4.5v3M7 8.5v.5"/>'
+            : type === 'success'
+              ? '<circle cx="7" cy="7" r="5.5"/><path d="M4.5 7l2 2 3-3"/>'
+              : '<circle cx="7" cy="7" r="5.5"/><path d="M7 5v3M7 9v.5"/>'}
+        </svg>
+        <span>${escapeHtml(msg)}</span>`;
+      el.classList.remove('hidden');
+    }
+
+    function clearAlert(id) { $(id).classList.add('hidden'); }
+
+    function fieldError(id, msg) {
+      const el = $(id);
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      el.previousElementSibling && el.previousElementSibling.classList.add('has-error');
+      // handle pass-wrap sibling
+      const prev = el.previousElementSibling;
+      if (prev && prev.classList.contains('pass-wrap')) {
+        prev.querySelector('input').classList.add('has-error');
+      }
+    }
+
+    function clearFieldError(id) {
+      const el = $(id);
+      el.classList.add('hidden');
+      const prev = el.previousElementSibling;
+      if (prev) {
+        if (prev.tagName === 'INPUT') prev.classList.remove('has-error');
+        if (prev.classList && prev.classList.contains('pass-wrap')) {
+          prev.querySelector('input').classList.remove('has-error');
+        }
+      }
+    }
+
+    function setLoadingBtn(id, loading, text) {
+      const btn = $(id);
+      if (loading) {
+        btn.disabled = true;
+        btn.innerHTML = `<div class="spinner"></div> ${escapeHtml(text)}`;
+      } else {
+        btn.disabled = false;
+        btn.textContent = text;
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function togglePass(inputId, btn) {
+      const input = $(inputId);
+      const isPass = input.type === 'password';
+      input.type = isPass ? 'text' : 'password';
+      btn.querySelector('.eye-icon').style.opacity = isPass ? '0.5' : '1';
+    }
+
+    // ── Tab switcher ───────────────────────────
+
+    function switchTab(tab) {
+      const isLogin = tab === 'login';
+      $('loginSection').classList.toggle('hidden', !isLogin);
+      $('signupSection').classList.toggle('hidden', isLogin);
+      $('tabLogin').classList.toggle('active', isLogin);
+      $('tabSignup').classList.toggle('active', !isLogin);
+      $('authFooter').innerHTML = isLogin
+        ? `Don't have an account? <button onclick="switchTab('signup')">Create one free</button>`
+        : `Already have an account? <button onclick="switchTab('login')">Sign in</button>`;
+      clearAlert('loginAlert');
+      clearAlert('signupAlert');
+    }
+
+    // ── Validation ─────────────────────────────
+
+    function validateEmail(v) {
+      if (!v.trim()) return 'Email is required.';
+      if (!/\S+@\S+\.\S+/.test(v)) return 'Enter a valid email address.';
+      return null;
+    }
+
+    function validatePassword(v, minLen = 1) {
+      if (!v) return 'Password is required.';
+      if (v.length < minLen) return `Password must be at least ${minLen} characters.`;
+      return null;
+    }
+
+    // ── Login ──────────────────────────────────
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      clearAlert('loginAlert');
+
+      const email    = $('loginEmail').value.trim();
+      const password = $('loginPassword').value;
+
+      let valid = true;
+      const emailErr = validateEmail(email);
+      if (emailErr) { fieldError('loginEmailErr', emailErr); valid = false; }
+      else          { clearFieldError('loginEmailErr'); }
+
+      const passErr = validatePassword(password);
+      if (passErr) { fieldError('loginPasswordErr', passErr); valid = false; }
+      else         { clearFieldError('loginPasswordErr'); }
+
+      if (!valid) return;
+
+      setLoadingBtn('loginBtn', true, 'Signing in…');
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.status === 403) {
+          setAlert('loginAlert', 'info', 'Please verify your email before signing in. Check your inbox.');
+          return;
+        }
+        if (!res.ok) {
+          setAlert('loginAlert', 'error', data.message || data.error || 'Invalid email or password.');
+          return;
+        }
+
+        // Store tokens
+        if (data.access_token)  localStorage.setItem('accessToken',  data.access_token);
+        if (data.refresh_token) localStorage.setItem('refreshToken', data.refresh_token);
+
+        window.location.href = 'dashboard.html';
+      } catch {
+        setAlert('loginAlert', 'error', 'Unable to reach the server. Please check your connection.');
+      } finally {
+        setLoadingBtn('loginBtn', false, 'Sign in');
+      }
+    }
+
+    // ── Signup ─────────────────────────────────
+
+    async function handleSignup(e) {
+      e.preventDefault();
+      clearAlert('signupAlert');
+
+      const name     = $('signupName').value.trim();
+      const email    = $('signupEmail').value.trim();
+      const password = $('signupPassword').value;
+      const confirm  = $('signupConfirm').value;
+
+      let valid = true;
+
+      if (!name) { fieldError('signupNameErr', 'Name is required.'); valid = false; }
+      else        { clearFieldError('signupNameErr'); }
+
+      const emailErr = validateEmail(email);
+      if (emailErr) { fieldError('signupEmailErr', emailErr); valid = false; }
+      else          { clearFieldError('signupEmailErr'); }
+
+      const passErr = validatePassword(password, 8);
+      if (passErr) { fieldError('signupPasswordErr', passErr); valid = false; }
+      else         { clearFieldError('signupPasswordErr'); }
+
+      if (!confirm) { fieldError('signupConfirmErr', 'Please confirm your password.'); valid = false; }
+      else if (confirm !== password) { fieldError('signupConfirmErr', 'Passwords do not match.'); valid = false; }
+      else { clearFieldError('signupConfirmErr'); }
+
+      if (!valid) return;
+
+      setLoadingBtn('signupBtn', true, 'Creating account…');
+      try {
+        const res = await fetch(`${API_BASE}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          setAlert('signupAlert', 'error', data.message || data.error || 'Registration failed. Please try again.');
+          return;
+        }
+
+        setAlert('signupAlert', 'success', 'Account created! Please check your email to verify your address.');
+        $('signupForm').reset();
+      } catch {
+        setAlert('signupAlert', 'error', 'Unable to reach the server. Please check your connection.');
+      } finally {
+        setLoadingBtn('signupBtn', false, 'Create account');
+      }
+    }
+
+    // ── Session check on page load ─────────────
+    // Validates existing token with the backend. If valid, skip login screen.
+
+    async function checkSession() {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        showAuthCard();
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/user/me`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (res.ok) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+        // Token invalid/expired — clear and show auth
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      } catch {
+        // Server unreachable — let user try to log in anyway
+      }
+      showAuthCard();
+    }
+
+    function showAuthCard() {
+      $('sessionCheckCard').classList.add('hidden');
+      $('authCard').classList.remove('hidden');
+      $('authFooter').classList.remove('hidden');
+    }
+
+    checkSession();
+  </script>
+</body>
+</html>
