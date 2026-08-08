@@ -10,20 +10,17 @@ import { useMagneticHover } from '@/lib/useMagneticHover'
 import { AISignalFlowSection } from '@/components/marketing/AISignalFlowSection'
 import { PortfolioTrackerSection } from '@/components/marketing/PortfolioTrackerSection'
 import { SolarSystemSection } from '@/components/marketing/SolarSystemSection'
-
 import { use3DTilt } from '@/lib/use3DTilt'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { GuestGateModal } from '@/components/auth/GuestGateModal'
-
 // ─────────────────────────────────────────────
 //  DATA
 // ─────────────────────────────────────────────
 const STAGGER = ['', 'delay-75', 'delay-150', 'delay-200', 'delay-300', 'delay-500'] as const
-
 const FAQ_ITEMS = [
   {
     q: 'Is Sentiquant free to use?',
-    a: 'Yes. The Starter plan is free forever — you get up to 10 stock analyses per month, no credit card required. Pro and Max plans unlock unlimited analyses and portfolio generation.',
+    a: 'Yes. The Starter plan is free forever — you get up to 10 stock analyses per day, no credit card required. Paid plans with higher limits are coming soon.',
   },
   {
     q: 'Which stocks does Sentiquant cover?',
@@ -35,14 +32,13 @@ const FAQ_ITEMS = [
   },
   {
     q: 'How long does an analysis take?',
-    a: 'Under 30 seconds for a full stock analysis. Portfolio generation typically takes under 2 minutes.',
+    a: 'Under 30 seconds for a full stock analysis. Portfolio generation typically takes a few minutes.',
   },
   {
     q: 'Do I need to know finance to use Sentiquant?',
     a: 'No. Every analysis comes with a plain-English summary. We explain what each signal means so you can make informed decisions — no finance degree required.',
   },
 ]
-
 // ─────────────────────────────────────────────
 //  FLOATING MOCKUP
 // ─────────────────────────────────────────────
@@ -119,7 +115,6 @@ function FloatingMockup() {
     </div>
   )
 }
-
 // ─────────────────────────────────────────────
 //  TICKER STRIP
 // ─────────────────────────────────────────────
@@ -128,7 +123,6 @@ interface TickerStock {
   name: string
   slug: string
 }
-
 const FALLBACK_STOCKS: TickerStock[] = [
   { symbol: 'RELIANCE',   name: 'Reliance Industries', slug: 'RELIANCE'   },
   { symbol: 'TCS',        name: 'Tata Consultancy',    slug: 'TCS'        },
@@ -146,14 +140,12 @@ const FALLBACK_STOCKS: TickerStock[] = [
   { symbol: 'KOTAKBANK',  name: 'Kotak Mahindra Bank', slug: 'KOTAKBANK'  },
   { symbol: 'HINDUNILVR', name: 'Hindustan Unilever',  slug: 'HINDUNILVR' },
 ]
-
 function TickerStrip() {
   const { status } = useSession()
   const router = useRouter()
   const [stocks, setStocks] = useState<TickerStock[]>([])
   const [showModal, setShowModal] = useState(false)
   const [isGrabbing, setIsGrabbing] = useState(false)
-
   // drag / swipe refs — all mutations, no re-renders needed
   const outerRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
@@ -165,7 +157,6 @@ function TickerStrip() {
   const touchStartXRef = useRef(0)
   const touchStartYRef = useRef(0)
   const isHorizSwipeRef = useRef(false)
-
   useEffect(() => {
     fetch('/api/proxy/stocks/list')
       .then((r) => {
@@ -196,10 +187,8 @@ function TickerStrip() {
       })
       .catch((err) => console.warn('[TickerStrip] Stock list fetch threw, using fallback:', err))
   }, [])
-
   // Clear any pending resume timer on unmount
   useEffect(() => () => clearTimeout(resumeTimerRef.current), [])
-
   // touchmove must be non-passive so we can preventDefault for horizontal swipes
   useEffect(() => {
     const outer = outerRef.current
@@ -221,14 +210,12 @@ function TickerStrip() {
     outer.addEventListener('touchmove', onTouchMove, { passive: false })
     return () => outer.removeEventListener('touchmove', onTouchMove)
   }, [])
-
   // Read the current translateX of the track (px) whether set by animation or inline style
   function getTrackOffset(): number {
     if (!trackRef.current) return 0
     const matrix = new DOMMatrix(window.getComputedStyle(trackRef.current).transform)
     return matrix.m41
   }
-
   // Freeze the track at its current visual position and stop the animation
   function pauseTrack() {
     const el = trackRef.current
@@ -237,7 +224,6 @@ function TickerStrip() {
     el.style.animation = 'none'
     el.style.transform = `translateX(${currentX}px)`
   }
-
   // Resume auto-scroll from whichever position the track is currently at,
   // picking up seamlessly via a negative animation-delay.
   function resumeFromCurrentPosition() {
@@ -253,14 +239,11 @@ function TickerStrip() {
     el.style.transform = ''
     el.style.animation = `ticker-x-scroll 40s linear ${delay}s infinite`
   }
-
   function scheduleResume() {
     clearTimeout(resumeTimerRef.current)
     resumeTimerRef.current = setTimeout(resumeFromCurrentPosition, 2000)
   }
-
   // ── Mouse handlers (desktop drag) ──────────────────────────────────────────
-
   function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
     isDraggingRef.current = true
     dragStartXRef.current = e.clientX
@@ -270,7 +253,6 @@ function TickerStrip() {
     pauseTrack()
     setIsGrabbing(true)
   }
-
   function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
     if (!isDraggingRef.current) return
     const delta = e.clientX - dragStartXRef.current
@@ -280,16 +262,13 @@ function TickerStrip() {
       trackRef.current.style.transform = `translateX(${newX}px)`
     }
   }
-
   function endMouseDrag() {
     if (!isDraggingRef.current) return
     isDraggingRef.current = false
     setIsGrabbing(false)
     scheduleResume()
   }
-
   // ── Touch handlers (mobile swipe) ──────────────────────────────────────────
-
   function handleTouchStart(e: React.TouchEvent) {
     touchStartXRef.current = e.touches[0].clientX
     touchStartYRef.current = e.touches[0].clientY
@@ -299,19 +278,15 @@ function TickerStrip() {
     clearTimeout(resumeTimerRef.current)
     pauseTrack()
   }
-
   function handleTouchEnd() {
     scheduleResume()
   }
-
   const displayStocks = stocks.length > 0 ? stocks : FALLBACK_STOCKS
   const doubled = [...displayStocks, ...displayStocks]
-
   return (
     <>
       {/* Gate modal — shown to guests who have used their one free view */}
       {showModal && <GuestGateModal onClose={() => setShowModal(false)} />}
-
       {/* Scrolling strip */}
       <div
         ref={outerRef}
@@ -391,7 +366,6 @@ function TickerStrip() {
       </div>
     </>
   )
-
   function handleClick(slug: string) {
     if (status === 'authenticated') {
       router.push(`/stocks/${slug}`)
@@ -406,13 +380,11 @@ function TickerStrip() {
     }
   }
 }
-
 // ─────────────────────────────────────────────
 //  VIDEO SECTION
 // ─────────────────────────────────────────────
 function VideoSection() {
   const { ref, inView } = useInView<HTMLDivElement>(0.1)
-
   return (
     <section
       style={{
@@ -464,7 +436,6 @@ function VideoSection() {
             60 seconds.
           </span>
         </h2>
-
         {/* Subtext */}
         <p
           style={{
@@ -478,7 +449,6 @@ function VideoSection() {
         >
           Watch how Sentiquant analyses a real NSE stock — from search to signal in one click.
         </p>
-
         {/* Video frame with browser chrome */}
         <div
           ref={ref}
@@ -528,7 +498,6 @@ function VideoSection() {
               sentiquant.org/stocks/RELIANCE
             </div>
           </div>
-
           {/* Video element — placeholder shows underneath until video loads */}
           <div style={{ position: 'relative', backgroundColor: '#0a0a0a', minHeight: '500px' }}>
             <div
@@ -564,7 +533,6 @@ function VideoSection() {
     </section>
   )
 }
-
 // ─────────────────────────────────────────────
 //  FEATURE CARDS SECTION
 // ─────────────────────────────────────────────
@@ -572,7 +540,6 @@ function BentoSection() {
   const { ref: refA, inView: inViewA } = useInView<HTMLDivElement>(0.1)
   const { ref: refB, inView: inViewB } = useInView<HTMLDivElement>(0.1)
   const { ref: refC, inView: inViewC } = useInView<HTMLDivElement>(0.1)
-
   const BENTO_CARD: React.CSSProperties = {
     backgroundColor: '#0a0a0a',
     border:          '1px solid #2e3038',
@@ -581,7 +548,6 @@ function BentoSection() {
     minHeight:       '400px',
     transition:      'border-color 200ms ease',
   }
-
   return (
     <section
       style={{
@@ -595,7 +561,6 @@ function BentoSection() {
         .bcard:hover { border-color: #0664e8 !important; }
       `}</style>
       <div className="sec-inner" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px' }}>
-
         {/* Section header */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '56px' }}>
           <h2 style={{ margin: 0 }}>
@@ -613,10 +578,8 @@ function BentoSection() {
             </span>
           </h2>
         </div>
-
         {/* Bento grid — 2 col desktop, 1 col mobile */}
         <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: '12px' }}>
-
           {/* ── CARD A — AI Stock Analysis ── */}
           <div
             ref={refA}
@@ -704,7 +667,6 @@ function BentoSection() {
               </div>
             </div>
           </div>
-
           {/* ── CARD B — Portfolio Generator ── */}
           <div
             ref={refB}
@@ -779,7 +741,6 @@ function BentoSection() {
               </div>
             </div>
           </div>
-
           {/* ── CARD C — How It Works (full width) ── */}
           <div
             ref={refC}
@@ -799,35 +760,34 @@ function BentoSection() {
                   className="block"
                   style={{ fontFamily: 'var(--font-playfair)', fontSize: '32px', fontWeight: 400, color: '#ffffff', lineHeight: 1.2 }}
                 >
-                  From search to signal
+                  From budget to portfolio
                 </span>
                 <span
                   className="block"
                   style={{ fontFamily: 'var(--font-playfair)', fontSize: '32px', fontWeight: 400, fontStyle: 'italic', color: '#0664e8', lineHeight: 1.2 }}
                 >
-                  in 60 seconds.
+                  in three steps.
                 </span>
               </h3>
             </div>
-
             {/* 3-step flow */}
             <div className="grid grid-cols-1 md:grid-cols-3">
               {[
                 {
-                  title: 'Enter any stock',
-                  body:  'Search by name or ticker. 250+ NSE and BSE stocks covered.',
+                  title: 'Tell us your budget',
+                  body:  'Enter how much you want to invest and your risk appetite. Takes under a minute.',
                   pad:   { padding: '0 32px 0 0' } as React.CSSProperties,
                   border: '1px solid #2e3038',
                 },
                 {
-                  title: 'AI analyses instantly',
-                  body:  'Technicals, fundamentals, and sentiment — processed simultaneously in under 30 seconds.',
+                  title: 'AI builds your portfolio',
+                  body:  'We scan 250+ NSE and BSE stocks and allocate across a diversified basket — sized to your budget.',
                   pad:   { padding: '0 32px' } as React.CSSProperties,
                   border: '1px solid #2e3038',
                 },
                 {
-                  title: 'Get clear signals',
-                  body:  'AI score, entry zone, support, three resistance targets, and a plain-English summary.',
+                  title: 'Act with confidence',
+                  body:  'Each holding comes with entry, stop-loss, and target levels in plain English — ready to act on.',
                   pad:   { padding: '0 0 0 32px' } as React.CSSProperties,
                   border: 'none',
                 },
@@ -864,13 +824,11 @@ function BentoSection() {
               ))}
             </div>
           </div>
-
         </div>
       </div>
     </section>
   )
 }
-
 // ─────────────────────────────────────────────
 //  PULL QUOTE SECTION
 // ─────────────────────────────────────────────
@@ -937,14 +895,12 @@ function PullQuoteSection() {
     </section>
   )
 }
-
 // ─────────────────────────────────────────────
 //  FAQ SECTION
 // ─────────────────────────────────────────────
 function FAQSection() {
   const { ref, inView } = useInView<HTMLDivElement>(0.1)
   const [open, setOpen] = useState<number | null>(null)
-
   return (
     <section
       style={{
@@ -955,7 +911,6 @@ function FAQSection() {
       }}
     >
       <div className="sec-inner" style={{ maxWidth: '720px', margin: '0 auto', padding: '0 48px' }}>
-
         {/* Header */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '48px' }}>
           <h2
@@ -971,7 +926,6 @@ function FAQSection() {
             Common questions.
           </h2>
         </div>
-
         {/* Accordion */}
         <div ref={ref}>
           {FAQ_ITEMS.map(({ q, a }, i) => (
@@ -1051,12 +1005,10 @@ function FAQSection() {
             </div>
           ))}
         </div>
-
       </div>
     </section>
   )
 }
-
 // ─────────────────────────────────────────────
 //  BOTTOM CTA SECTION
 // ─────────────────────────────────────────────
@@ -1088,13 +1040,13 @@ function BottomCTASection() {
             className="block"
             style={{ fontFamily: 'var(--font-playfair)', fontWeight: 400, fontSize: 'clamp(36px, 4vw, 56px)', color: '#ffffff', lineHeight: 1.1 }}
           >
-            Start analysing
+            Get your portfolio
           </span>
           <span
             className="block"
             style={{ fontFamily: 'var(--font-playfair)', fontWeight: 400, fontStyle: 'italic', fontSize: 'clamp(36px, 4vw, 56px)', color: '#0664e8', lineHeight: 1.1 }}
           >
-            smarter today.
+            in minutes.
           </span>
         </h2>
         <p
@@ -1108,7 +1060,7 @@ function BottomCTASection() {
           Free forever on Starter. No credit card required.
         </p>
         <Link
-          href="/signup"
+          href="/portfolio"
           className="inline-flex hover:bg-[#e2e3e9] hover:border-[#e2e3e9] transition-colors duration-150"
           style={{
             backgroundColor: '#ffffff',
@@ -1123,13 +1075,12 @@ function BottomCTASection() {
             margin: '0 auto',
           }}
         >
-          Get started free →
+          Build my portfolio →
         </Link>
       </div>
     </section>
   )
 }
-
 // ─────────────────────────────────────────────
 //  HOME CLIENT
 // ─────────────────────────────────────────────
@@ -1137,7 +1088,6 @@ export function HomeClient() {
   const { status } = useSession()
   const [isSigningIn, setIsSigningIn] = useState(false)
   const magneticCta = useMagneticHover<HTMLAnchorElement>(0.22)
-
   return (
     <div className="flex flex-col [overflow-x:clip]">
       <style>{`
@@ -1162,10 +1112,8 @@ export function HomeClient() {
       >
         <div className="relative z-10 max-w-6xl mx-auto w-full">
           <div className="grid grid-cols-1 lg:grid-cols-[55fr_45fr] items-center gap-10 lg:gap-16">
-
             {/* Left column */}
             <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
-
               {/* Headline */}
               <h1 className="hero-entry-1 hero-h1" style={{ marginTop: 0 }}>
                 <span
@@ -1212,7 +1160,6 @@ export function HomeClient() {
                   with AI.
                 </span>
               </h1>
-
               {/* Subheading */}
               <p
                 className="hero-entry-2"
@@ -1226,9 +1173,8 @@ export function HomeClient() {
                   marginTop:  '24px',
                 }}
               >
-                Instant analysis of NSE and BSE stocks — technicals, fundamentals, sentiment, and entry zones in under 60 seconds.
+                Tell us your budget. Get a ready-to-act portfolio — which stocks, how much in each, with clear entry, stop-loss, and target levels. No spreadsheets, no jargon.
               </p>
-
               {/* CTA Buttons */}
               <div
                 className="hero-entry-3 flex flex-row flex-wrap items-center gap-3 hero-cta-row"
@@ -1236,11 +1182,11 @@ export function HomeClient() {
               >
                 <Link
                   ref={magneticCta.ref}
-                  href="/stocks"
+                  href="/portfolio"
                   className="inline-flex items-center justify-center bg-white text-black border border-white rounded-[2px] text-[14px] font-semibold hover:bg-[#e2e3e9] hover:border-[#e2e3e9] transition-colors duration-150"
                   style={{ ...magneticCta.style, padding: '11px 24px', fontFamily: 'var(--font-inter)' }}
                 >
-                  Analyze a stock
+                  Build my portfolio
                 </Link>
                 {status === 'loading' ? (
                   <div
@@ -1285,7 +1231,6 @@ export function HomeClient() {
                   </button>
                 )}
               </div>
-
               {/* Trust line — only shown to logged-out users */}
               {status !== 'authenticated' && (
                 <p
@@ -1301,16 +1246,13 @@ export function HomeClient() {
                   No credit card required · Free forever on Starter plan
                 </p>
               )}
-
             </div>
-
             {/* Right column: FloatingMockup */}
             <div className="hidden md:flex items-center justify-center md:pl-0 lg:pl-4 xl:pl-8">
               <FloatingMockup />
             </div>
           </div>
         </div>
-
         {/* Bottom divider */}
         <div
           className="absolute bottom-0 left-0 right-0"
@@ -1318,35 +1260,26 @@ export function HomeClient() {
           aria-hidden="true"
         />
       </section>
-
       {/* ── TICKER STRIP ── */}
       <TickerStrip />
-
       {/* ── AI SIGNAL FLOW ── */}
       <AISignalFlowSection />
-
+      {/* ── PORTFOLIO TRACKER (moved up — core trust asset: real portfolio, tracked live) ── */}
+      <ErrorBoundary context="PortfolioTrackerSection">
+        <PortfolioTrackerSection />
+      </ErrorBoundary>
       {/* ── VIDEO SECTION ── */}
       <VideoSection />
-
       {/* ── FEATURE CARDS ── */}
       <BentoSection />
-
       {/* ── SOLAR SYSTEM SECTION ── */}
       <ErrorBoundary context="SolarSystemSection" fallback={() => null}>
         <SolarSystemSection />
       </ErrorBoundary>
-
-      {/* ── PORTFOLIO TRACKER ── */}
-      <ErrorBoundary context="PortfolioTrackerSection">
-        <PortfolioTrackerSection />
-      </ErrorBoundary>
-
       {/* ── PULL QUOTE ── */}
       <PullQuoteSection />
-
       {/* ── FAQ ── */}
       <FAQSection />
-
       {/* ── BOTTOM CTA ── */}
       <BottomCTASection />
     </div>
