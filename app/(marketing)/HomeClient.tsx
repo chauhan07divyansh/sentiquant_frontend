@@ -385,14 +385,34 @@ function TickerStrip() {
 // ─────────────────────────────────────────────
 function VideoSection() {
   const { ref, inView } = useInView<HTMLDivElement>(0.1)
+  const [hasVideo, setHasVideo] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    const onOk = () => setHasVideo(true)
+    const onErr = () => setHasVideo(false)
+    v.addEventListener('loadeddata', onOk)
+    v.addEventListener('error', onErr)
+    try { v.load() } catch {}
+    return () => {
+      v.removeEventListener('loadeddata', onOk)
+      v.removeEventListener('error', onErr)
+    }
+  }, [])
+
   return (
     <section
       style={{
         backgroundColor: '#000000',
-        paddingTop: '100px',
-        paddingBottom: '100px',
-        borderBottom: '1px solid #2e3038',
+        paddingTop: hasVideo ? '100px' : 0,
+        paddingBottom: hasVideo ? '100px' : 0,
+        borderBottom: hasVideo ? '1px solid #2e3038' : 'none',
+        height: hasVideo ? 'auto' : 0,
+        overflow: 'hidden',
       }}
+      aria-hidden={!hasVideo}
     >
       <div
         style={{
@@ -406,7 +426,7 @@ function VideoSection() {
         }}
         className="sec-inner"
       >
-        {/* Headline */}
+        {/* Headline — portfolio positioning */}
         <h2 style={{ margin: 0 }}>
           <span
             className="block"
@@ -419,7 +439,7 @@ function VideoSection() {
               letterSpacing: '-0.02em',
             }}
           >
-            AI analysis in under
+            From budget to portfolio
           </span>
           <span
             className="block"
@@ -433,7 +453,7 @@ function VideoSection() {
               letterSpacing: '-0.02em',
             }}
           >
-            60 seconds.
+            in one flow.
           </span>
         </h2>
         {/* Subtext */}
@@ -447,7 +467,7 @@ function VideoSection() {
             lineHeight: 1.6,
           }}
         >
-          Watch how Sentiquant analyses a real NSE stock — from search to signal in one click.
+          Watch a real run — enter a budget, and Sentiquant builds a ready-to-act portfolio with entry, stop-loss, and target levels.
         </p>
         {/* Video frame with browser chrome */}
         <div
@@ -495,37 +515,21 @@ function VideoSection() {
                 overflow: 'hidden',
               }}
             >
-              sentiquant.org/stocks/RELIANCE
+              sentiquant.org/portfolio
             </div>
           </div>
-          {/* Video element — placeholder shows underneath until video loads */}
-          <div style={{ position: 'relative', backgroundColor: '#0a0a0a', minHeight: '500px' }}>
-            <div
-              aria-hidden="true"
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <span style={{ fontFamily: 'var(--font-inter)', fontSize: '13px', color: '#464853' }}>
-                Drop your screen recording as /public/demo.mp4
-              </span>
-            </div>
+          {/* Video element — section stays hidden until this loads successfully */}
+          <div style={{ position: 'relative', backgroundColor: '#0a0a0a', lineHeight: 0 }}>
             <video
+              ref={videoRef}
               autoPlay
               muted
               loop
               playsInline
-              preload="none"
+              preload="metadata"
               src="/demo.mp4"
               poster="/demo-poster.jpg"
-              style={{ width: '100%', display: 'block', position: 'relative', zIndex: 1 }}
+              style={{ width: '100%', height: 'auto', display: 'block', position: 'relative', zIndex: 1 }}
             />
           </div>
         </div>
