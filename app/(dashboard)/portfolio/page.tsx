@@ -14,7 +14,7 @@ import { track } from '@/lib/analytics'
 import { RISK_LABELS } from '@/types/portfolio.types'
 import type { PortfolioJob } from '@/lib/api/portfolio.api'
 import type { RiskAppetite } from '@/types/stock.types'
-import type { PortfolioResponse } from '@/types/portfolio.types'
+import type { PortfolioResponse, SavedPortfolio } from '@/types/portfolio.types'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AIDisclosureNote } from '@/components/common/AIDisclosureNote'
 import { generatePortfolioPDF } from '@/lib/generatePortfolioPDF'
@@ -73,7 +73,7 @@ function PortfolioProgress({ job }: { job: PortfolioJob | null }) {
         </div>
       </div>
       <p className="text-xs text-surface-600 text-center max-w-xs leading-relaxed">
-        This takes 5–8 minutes. You can leave this page — your portfolio will be ready when you return.
+        This takes about 3–4 minutes. Feel free to leave this page — your portfolio will be ready when you come back.
       </p>
     </div>
   )
@@ -556,6 +556,75 @@ const RISK_OPTIONS = [
   { value: 'HIGH' as RiskAppetite, label: 'Aggressive', sub: 'Maximum growth', detail: 'High-momentum and mid-cap stocks. Higher risk, higher potential reward.', icon: (<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M2 14l5-5 4 4 5-7" /><path d="M13 6h4v4" /></svg>), activeClass: 'border-rose-400/40 bg-rose-400/8', iconClass: 'bg-rose-400/10 text-rose-400', labelClass: 'text-rose-400' },
 ] as const
 // ─────────────────────────────────────────────
+//  RECENT PORTFOLIOS  (view-only history, last 3)
+// ─────────────────────────────────────────────
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime()
+  if (isNaN(then)) return ''
+  const diffMs = Date.now() - then
+  const mins  = Math.floor(diffMs / 60000)
+  if (mins < 1)  return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24)  return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days === 1) return 'yesterday'
+  if (days < 30)  return `${days}d ago`
+  return new Date(iso).toLocaleDateString('en-IN')
+}
+function RecentPortfolios({ items, onOpen }: {
+  items: SavedPortfolio[]
+  onOpen: (p: SavedPortfolio) => void
+}) {
+  if (!items.length) return null
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-[11px] font-semibold text-surface-500 uppercase tracking-wider">
+        Your recent portfolios
+      </p>
+      <div className="flex flex-col gap-2">
+        {items.map((p, i) => {
+          const budget    = p.result?.summary?.total_budget ?? p.request?.budget ?? 0
+          const positions = p.result?.summary?.diversification ?? p.result?.portfolio?.length ?? 0
+          const avgScore  = p.result?.summary?.average_score
+          const riskLabel = p.request?.riskAppetite ? (RISK_LABELS[p.request.riskAppetite] ?? p.request.riskAppetite) : ''
+          return (
+            <button
+              key={`${p.generatedAt}-${i}`}
+              type="button"
+              onClick={() => onOpen(p)}
+              className="group flex items-center justify-between gap-4 rounded-xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 hover:border-brand-cyan/40 transition-all text-left"
+              style={{ padding: '14px 16px' }}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-brand-cyan/10 border border-brand-cyan/20">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-cyan" aria-hidden="true">
+                    <path d="M2 13V9M6 13V5M10 13V7M14 13V3" />
+                  </svg>
+                </div>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-sm font-semibold text-surface-900 dark:text-white truncate">
+                    {p.type === 'swing' ? 'Swing' : 'Position'} portfolio · {formatINRCompact(budget)}
+                  </span>
+                  <span className="text-[11px] text-surface-500 truncate">
+                    {positions} positions{riskLabel ? ` · ${riskLabel}` : ''}{avgScore != null ? ` · avg ${Math.round(avgScore)}/100` : ''} · {relativeTime(p.generatedAt)}
+                  </span>
+                </div>
+              </div>
+              <span className="flex items-center gap-1 text-xs font-medium text-surface-500 group-hover:text-brand-cyan transition-colors shrink-0">
+                View
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 2l4 4-4 4" />
+                </svg>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+// ─────────────────────────────────────────────
 //  PORTFOLIO PAGE
 // ─────────────────────────────────────────────
 type PortfolioType = 'swing' | 'position'
@@ -575,24 +644,31 @@ export default function PortfolioPage() {
   const [showToast,    setShowToast]    = useState(false)
   const [restored,     setRestored]     = useState(false)   // ★ FIX 1: track whether mount-restore has run
   // ★ FIX 1: also read the saved portfolios + clear fn from the store
-  const { saveSwingPortfolio, savePositionPortfolio, lastSwingPortfolio, lastPositionPortfolio, clearPortfolios } = usePortfolioStore()
+  const { savePortfolio, history } = usePortfolioStore()
   const swingMutation    = useCreateSwingPortfolio()
   const positionMutation = useCreatePositionPortfolio()
   const mutation         = type === 'swing' ? swingMutation : positionMutation
   const handleProgress   = useCallback((job: PortfolioJob) => { setCurrentJob(job) }, [])
-  // ★ FIX 2: Restore last generated portfolio on mount. It IS persisted to the
-  // store (localStorage), but the page previously never read it back — so
-  // navigating away and returning showed the empty wizard (portfolio "lost").
+  // Restore the most recent portfolio on mount. Portfolios are persisted to the
+  // store (localStorage) and survive navigation/refresh; the page reads the
+  // latest one back so returning users don't see an empty wizard.
   // Runs client-side only (useEffect), so no SSR hydration mismatch.
   useEffect(() => {
     if (result || restored) return
-    const saved = lastSwingPortfolio ?? lastPositionPortfolio
-    if (saved?.result) {
-      setResult(saved.result)
-      setResultType(saved.type)
+    const latest = history[0]
+    if (latest?.result) {
+      setResult(latest.result)
+      setResultType(latest.type)
     }
     setRestored(true)
-  }, [result, restored, lastSwingPortfolio, lastPositionPortfolio])
+  }, [result, restored, history])
+  // Load a specific portfolio from the recent-history list into the result view.
+  function loadFromHistory(p: SavedPortfolio) {
+    setResult(p.result)
+    setResultType(p.type)
+    setRestored(true)
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
   function goNext() {
     if (step === 2 && !risk) { setFormErrors({ riskAppetite: 'Please select a risk level to continue' }); return }
     if (step === 3) {
@@ -618,10 +694,10 @@ export default function PortfolioPage() {
       let data: PortfolioResponse
       if (type === 'swing') {
         data = await swingMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk!, onProgress: handleProgress })
-        saveSwingPortfolio({ type: 'swing', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk! }, result: data })
+        savePortfolio({ type: 'swing', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk! }, result: data })
       } else {
         data = await positionMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60, onProgress: handleProgress })
-        savePositionPortfolio({ type: 'position', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60 }, result: data })
+        savePortfolio({ type: 'position', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60 }, result: data })
       }
       track.portfolioBuildCompleted(type, data.portfolio?.length ?? 0, Math.round(data.summary?.average_score ?? 0))
       setResult(data)
@@ -636,12 +712,15 @@ export default function PortfolioPage() {
     }
   }
   function handleReset() {
+    // "Generate New" returns to a fresh wizard but KEEPS history — the recent
+    // portfolios stay in the list below so the user can still reach them.
+    // setRestored(true) stops the mount-effect from auto-loading the latest
+    // back over the fresh wizard the user just asked for.
     setResult(null); setStep(1); setDirection('forward')
     setBudget(''); setRisk(undefined); setTimePeriod(18)
     setFormErrors({}); setShowToast(false); setCurrentJob(null)
     swingMutation.reset(); positionMutation.reset()
-    clearPortfolios()   // ★ FIX 4: clear persisted portfolio so a deliberate "new" start stays fresh
-    setRestored(true)   // ★ FIX 4: prevent the just-cleared portfolio from re-restoring
+    setRestored(true)
   }
   const isGenerating = mutation.isPending || (currentJob !== null && currentJob.status !== 'complete' && currentJob.status !== 'failed')
   return (
@@ -852,7 +931,7 @@ export default function PortfolioPage() {
                   <div className="rounded-xl border border-brand-cyan/15 bg-brand-cyan/5 p-4">
                     <p className="text-xs text-surface-400 leading-relaxed flex items-start gap-2">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-cyan shrink-0 mt-0.5"><circle cx="7" cy="7" r="5.5" /><path d="M7 5v3M7 9.5v.5" /></svg>
-                      Portfolio generation scans 240 stocks — takes <strong className="text-surface-300">5–8 minutes</strong>.
+                      Portfolio generation scans 240 stocks — takes <strong className="text-surface-300">about 3–4 minutes</strong>.
                     </p>
                   </div>
                 </div>
@@ -885,6 +964,13 @@ export default function PortfolioPage() {
                 </Button>
               )}
             </div>
+            {/* Recent portfolios — view-only history (last 3). Only shown on
+                the wizard/empty state; clicking one loads it into the result view. */}
+            {history.length > 0 && (
+              <div className="mt-2 pt-6 border-t border-gray-200 dark:border-surface-800">
+                <RecentPortfolios items={history} onOpen={loadFromHistory} />
+              </div>
+            )}
           </div>
         )
       ) : (
