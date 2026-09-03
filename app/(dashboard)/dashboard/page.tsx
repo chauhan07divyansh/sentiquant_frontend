@@ -234,14 +234,11 @@ export default function DashboardPage() {
             </div>
             <p className="font-sans font-semibold text-[15px] text-white">Track performance</p>
             <p className="text-[13px] leading-relaxed" style={{ color: '#777a88' }}>
-              Your analyzed stocks and portfolio calls appear here as your activity grows.
+              See how every portfolio has performed against the Nifty 50 — wins and losses both.
             </p>
-            <span
-              className="self-start text-[10px] px-2 py-0.5 rounded-full mt-1"
-              style={{ color: '#777a88', border: '1px solid rgba(255,255,255,0.08)' }}
-            >
-              Coming soon
-            </span>
+            <Link href="/track-record" className="text-xs font-medium text-brand-blue hover:text-brand-cyan transition-colors mt-1">
+              View track record →
+            </Link>
           </div>
 
         </div>
