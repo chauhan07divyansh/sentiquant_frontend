@@ -290,7 +290,7 @@
   /* Badge */
   .badge {
     align-items: center;
-    border-radius: 9999px;
+    border-radius: 2px;
     border: 1px solid;
     display: inline-flex;
     font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
