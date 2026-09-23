@@ -8,13 +8,14 @@
 //    validate_risk_appetite() → LOW | MEDIUM | HIGH
 //    validate_time_period()  → 9 | 18 | 36 | 60
 // ─────────────────────────────────────────────
-import apiClient, { dispatchApiUsage } from './client'
+import apiClient, { dispatchApiUsage, get, post } from './client'
 import { ValidationError, BackendError } from '@/types/api.types'
 import type {
   PortfolioResponse,
   SwingPortfolioRequest,
   PositionPortfolioRequest,
   TimePeriod,
+  TrackedPortfolio,
 } from '@/types/portfolio.types'
 import type { RiskAppetite } from '@/types/stock.types'
 
@@ -98,7 +99,23 @@ export async function createSwingPortfolio(
 
   const result = await pollJob(jobId, onProgress)
   dispatchApiUsage('portfolio')
-  return result
+  return { ...result, job_id: jobId }
+}
+
+// ─────────────────────────────────────────────
+//  POST /api/v1/portfolio/track
+//  Persists a completed swing job into the user's tracked portfolios.
+// ─────────────────────────────────────────────
+export async function trackPortfolio(jobId: string): Promise<TrackedPortfolio> {
+  return post<TrackedPortfolio>('/api/v1/portfolio/track', { job_id: jobId })
+}
+
+// ─────────────────────────────────────────────
+//  GET /api/v1/portfolio/tracked
+//  Returns the logged-in user's active tracked portfolios.
+// ─────────────────────────────────────────────
+export async function getTrackedPortfolios(): Promise<TrackedPortfolio[]> {
+  return get<TrackedPortfolio[]>('/api/v1/portfolio/tracked')
 }
 
 // ─────────────────────────────────────────────
@@ -121,5 +138,5 @@ export async function createPositionPortfolio(
 
   const result = await pollJob(jobId, onProgress)
   dispatchApiUsage('portfolio')
-  return result
+  return { ...result, job_id: jobId }
 }
