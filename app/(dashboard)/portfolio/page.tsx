@@ -668,7 +668,7 @@ export default function PortfolioPage() {
   const [showConfetti, setShowConfetti] = useState(false)
   const [showToast,    setShowToast]    = useState(false)
 
-  const { saveSwingPortfolio, savePositionPortfolio } = usePortfolioStore()
+  const { savePortfolio } = usePortfolioStore()
   const swingMutation    = useCreateSwingPortfolio()
   const positionMutation = useCreatePositionPortfolio()
   const mutation         = type === 'swing' ? swingMutation : positionMutation
@@ -701,10 +701,10 @@ export default function PortfolioPage() {
       let data: PortfolioResponse
       if (type === 'swing') {
         data = await swingMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk!, onProgress: handleProgress })
-        saveSwingPortfolio({ type: 'swing', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk! }, result: data })
+        savePortfolio({ type: 'swing', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk! }, result: data })
       } else {
         data = await positionMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60, onProgress: handleProgress })
-        savePositionPortfolio({ type: 'position', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60 }, result: data })
+        savePortfolio({ type: 'position', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60 }, result: data })
       }
       track.portfolioBuildCompleted(type, data.portfolio?.length ?? 0, Math.round(data.summary?.average_score ?? 0))
       setResult(data)
