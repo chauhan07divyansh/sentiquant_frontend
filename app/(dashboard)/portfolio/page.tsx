@@ -3,6 +3,7 @@ import { Fragment, useState, useCallback, useEffect, useRef } from 'react'
 import { Confetti }      from '@/components/ui/Confetti'
 import { SuccessToast }  from '@/components/ui/SuccessToast'
 import { useCreateSwingPortfolio, useCreatePositionPortfolio } from '@/hooks/useQueryHooks'
+import { trackPortfolio } from '@/lib/api/portfolio.api'
 import { usePortfolioStore } from '@/store'
 import { Button } from '@/components/ui/Button'
 import { BudgetInput } from '@/components/ui/Input'
@@ -14,11 +15,12 @@ import { track } from '@/lib/analytics'
 import { RISK_LABELS } from '@/types/portfolio.types'
 import type { PortfolioJob } from '@/lib/api/portfolio.api'
 import type { RiskAppetite } from '@/types/stock.types'
-import type { PortfolioResponse, SavedPortfolio } from '@/types/portfolio.types'
+import type { PortfolioResponse } from '@/types/portfolio.types'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AIDisclosureNote } from '@/components/common/AIDisclosureNote'
 import { generatePortfolioPDF } from '@/lib/generatePortfolioPDF'
 import { gradeLabel } from '@/lib/portfolioGrade'
+
 // Extended holding type with targets
 interface HoldingWithTargets {
   symbol?: string
@@ -34,6 +36,7 @@ interface HoldingWithTargets {
   target_2?: number
   target_3?: number
 }
+
 // ─────────────────────────────────────────────
 //  PORTFOLIO PROGRESS
 // ─────────────────────────────────────────────
@@ -73,11 +76,12 @@ function PortfolioProgress({ job }: { job: PortfolioJob | null }) {
         </div>
       </div>
       <p className="text-xs text-surface-600 text-center max-w-xs leading-relaxed">
-        This takes about 3–4 minutes. Feel free to leave this page — your portfolio will be ready when you come back.
+        This takes 5–8 minutes. You can leave this page — your portfolio will be ready when you return.
       </p>
     </div>
   )
 }
+
 // ─────────────────────────────────────────────
 //  SCORE BADGE
 // ─────────────────────────────────────────────
@@ -90,6 +94,7 @@ function ScoreBadge({ score }: { score: number | null | undefined }) {
     </span>
   )
 }
+
 // ─────────────────────────────────────────────
 //  GRADE + DIVERSIFICATION HELPERS
 // ─────────────────────────────────────────────
@@ -98,11 +103,13 @@ function computeGrade(avgScore: number): { label: string; color: string } {
   const color = avgScore >= 75 ? '#0664e8' : avgScore >= 65 ? '#10b981' : '#f59e0b'
   return { label, color }
 }
+
 function computeDivScore(holdings: HoldingWithTargets[]): number {
   if (!holdings.length) return 0
   const hhi = holdings.reduce((sum, h) => sum + ((h.percentage_allocation ?? 0) / 100) ** 2, 0)
   return Math.round((1 - hhi) * 100) / 10
 }
+
 // ─────────────────────────────────────────────
 //  PORTFOLIO RESULT
 // ─────────────────────────────────────────────
@@ -119,15 +126,24 @@ function PortfolioResult({ result, type, onReset }: {
   const [tracked,      setTracked]      = useState(false)
   const [trackError,   setTrackError]   = useState<string | null>(null)
   const [trackSuccess, setTrackSuccess] = useState<{ added: number; skipped: string[] } | null>(null)
+
+  // Per-user portfolio tracking (POST /portfolio/track) — distinct from the
+  // admin-only "Feature on Homepage Tracker" button above, which writes to the
+  // separate admin-curated homepage tracker.
+  const [userTrackState, setUserTrackState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [userTrackError, setUserTrackError] = useState<string | null>(null)
+
   const tableRef = useRef<HTMLDivElement>(null)
   const [tableScrolled, setTableScrolled] = useState(false)
   const onTableScroll = () => {
     const el = tableRef.current
     if (el) setTableScrolled(el.scrollLeft + el.clientWidth >= el.scrollWidth - 4)
   }
+
   useEffect(() => {
     setIsAdmin(!!sessionStorage.getItem('sq_admin_secret'))
   }, [])
+
   const sorted = [...(portfolio ?? [])].map(h => h as HoldingWithTargets).sort((a, b) => {
     const av = sortKey === 'allocation' ? (a.percentage_allocation ?? 0)
            : sortKey === 'score'      ? (a.score ?? 0)
@@ -156,7 +172,31 @@ function PortfolioResult({ result, type, onReset }: {
   const handleDownload = () => {
     track.portfolioDownloaded(type)
     generatePortfolioPDF(result, type)
+
+    // OLD: plain-text fallback (kept for reference)
+    // const lines = [
+    //   'SENTIQUANT AI PORTFOLIO', '═'.repeat(60), '',
+    //   `Strategy: ${type === 'swing' ? 'Swing Trading' : 'Position Trading'}`,
+    //   `Budget: ${formatINR(summary.total_budget, 0)} | Allocated: ${formatINR(summary.total_allocated, 0)} (${deployedPct.toFixed(1)}%)`,
+    //   `Cash: ${formatINR(summary.remaining_cash, 0)} | Avg Score: ${Math.round(summary.average_score)}/100 | Positions: ${summary.diversification}`,
+    //   '', '─'.repeat(60),
+    //   'No | Symbol | Company | Alloc% | Amount | Price | Shares | Support | Score',
+    //   '─'.repeat(60),
+    //   ...(portfolio ?? []).map((h, i) =>
+    //     `${String(i+1).padStart(2)} | ${(h.symbol??'').padEnd(10)} | ${(h.company??'').substring(0,20).padEnd(20)} | ${(h.percentage_allocation?.toFixed(1)??'').padStart(6)}% | ${h.investment_amount?formatINR(h.investment_amount,0):'—'} | ${h.price?formatINR(h.price,0):'—'} | ${h.number_of_shares?Math.round(h.number_of_shares):'—'} | ${h.stop_loss?formatINR(h.stop_loss,0):'—'} | ${h.score!=null?Math.round(h.score)+'%':'—'}`
+    //   ),
+    //   '', '═'.repeat(60),
+    //   `Generated by SentiQuant AI — ${new Date().toLocaleString('en-IN')}`,
+    //   'DISCLAIMER: AI-generated technical observations only. Not SEBI-registered investment advice.',
+    // ]
+    // const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
+    // const url = URL.createObjectURL(blob)
+    // const a = document.createElement('a')
+    // a.href = url; a.download = `sentiquant-portfolio-${Date.now()}.txt`
+    // document.body.appendChild(a); a.click()
+    // document.body.removeChild(a); URL.revokeObjectURL(url)
   }
+
   async function handleTrack() {
     const count = portfolio?.length ?? 0
     if (!confirm(`Add all ${count} positions to the live tracker?`)) return
@@ -210,6 +250,20 @@ function PortfolioResult({ result, type, onReset }: {
     setTracked(true)
     setTrackSuccess({ added, skipped })
   }
+
+  async function handleTrackForUser() {
+    if (!result.job_id || userTrackState === 'loading' || userTrackState === 'success') return
+    setUserTrackState('loading')
+    setUserTrackError(null)
+    try {
+      await trackPortfolio(result.job_id)
+      setUserTrackState('success')
+    } catch (err) {
+      setUserTrackState('error')
+      setUserTrackError(err instanceof Error ? err.message : 'Could not track this portfolio. Please try again.')
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
@@ -261,7 +315,7 @@ function PortfolioResult({ result, type, onReset }: {
               }}
             >
               {tracked ? (
-                <span>✓ Tracked</span>
+                <span>✓ Featured on Homepage</span>
               ) : (
                 <>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -269,7 +323,7 @@ function PortfolioResult({ result, type, onReset }: {
                     <path d="M4.5 6.5a3.5 3.5 0 015 0" />
                     <path d="M2 4a7 7 0 0110 0" />
                   </svg>
-                  {tracking ? 'Adding…' : 'Track this portfolio →'}
+                  {tracking ? 'Featuring…' : 'Feature on Homepage Tracker →'}
                 </>
               )}
             </button>
@@ -325,6 +379,91 @@ function PortfolioResult({ result, type, onReset }: {
           {sorted.length > 8 && <span className="text-[10px] text-surface-600">+{sorted.length - 8} more</span>}
         </div>
       </div>
+      {/* Track this portfolio (per-user) */}
+      <div className="rounded-[10px] border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-5 flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex flex-col gap-1 max-w-lg">
+          <h3 className="text-sm font-semibold text-surface-900 dark:text-white">Track this portfolio</h3>
+          <p className="text-xs text-surface-400 leading-relaxed">
+            Get notified by email when any position hits a target or stop-loss. We&apos;ll automatically close half a position at Target 1 and the rest at Target 2 or your stop-loss — whichever comes first.
+          </p>
+          {userTrackState === 'error' && userTrackError && (
+            <p className="text-xs text-rose-400 mt-1">{userTrackError}</p>
+          )}
+          {userTrackState === 'success' && (
+            <a href="/portfolio/my-portfolios" className="text-xs text-brand-cyan hover:underline mt-1 w-fit">
+              View my tracked portfolios →
+            </a>
+          )}
+        </div>
+        {userTrackState === 'success' ? (
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-400 shrink-0">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 8.5l3.5 3.5L13 4" />
+            </svg>
+            Tracking active
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={handleTrackForUser}
+            disabled={userTrackState === 'loading' || !result.job_id}
+            className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-[2px] font-semibold text-sm text-white transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{ background: '#0664e8' }}
+          >
+            {userTrackState === 'loading' ? 'Tracking…' : 'Track This Portfolio'}
+          </button>
+        )}
+      </div>
+      {/* Actions */}
+      <div className="flex gap-3 flex-wrap">
+        <button onClick={handleDownload}
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-blue to-brand-cyan text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all shadow-lg">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 2v8M4 7l4 4 4-4" /><path d="M2 13h12" />
+          </svg>
+          Download Portfolio
+        </button>
+        <button onClick={onReset}
+          className="flex items-center gap-2 px-6 py-3 border border-gray-200 dark:border-surface-700 rounded-xl font-semibold text-sm text-surface-300 hover:bg-surface-800/40 transition-all">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <path d="M11.5 2a5.5 5.5 0 10.8 4.5M11.5 2v4M11.5 2H7.5" />
+          </svg>
+          Generate New Portfolio
+        </button>
+      </div>
+      {/* Track result banners — admin only */}
+      {trackError && (
+        <div style={{ background: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.20)', borderRadius: '10px', padding: '16px' }}>
+          <p style={{ color: '#f43f5e', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', fontSize: '13px', fontWeight: 500, margin: 0 }}>
+            {trackError}
+          </p>
+        </div>
+      )}
+      {trackSuccess && (
+        <div style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.20)', borderRadius: '10px', padding: '16px' }}>
+          <p style={{ color: '#10b981', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', fontSize: '13px', fontWeight: 600, margin: '0 0 6px' }}>
+            {trackSuccess.added} position{trackSuccess.added !== 1 ? 's' : ''} added to the live tracker
+          </p>
+          <a
+            href="/#portfolio-tracker"
+            style={{ color: '#0664e8', fontSize: '12px', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', textDecoration: 'underline' }}
+          >
+            View tracker on homepage →
+          </a>
+          {trackSuccess.skipped.length > 0 && (
+            <div style={{ marginTop: '10px' }}>
+              <p style={{ color: '#777a88', fontSize: '12px', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', margin: '0 0 4px' }}>
+                {trackSuccess.skipped.length} skipped:
+              </p>
+              <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                {trackSuccess.skipped.map((s) => (
+                  <li key={s} style={{ color: '#777a88', fontSize: '11px', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif' }}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
       {/* Table */}
       <div className="rounded-xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 overflow-hidden">
         <div className="px-5 py-3.5 border-b border-gray-100 dark:border-surface-800 flex items-center justify-between">
@@ -455,61 +594,12 @@ function PortfolioResult({ result, type, onReset }: {
           })}
         </div>
       </div>
-      {/* Actions */}
-      <div className="flex gap-3 flex-wrap">
-        <button onClick={handleDownload}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-blue to-brand-cyan text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all shadow-lg">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M8 2v8M4 7l4 4 4-4" /><path d="M2 13h12" />
-          </svg>
-          Download Portfolio
-        </button>
-        <button onClick={onReset}
-          className="flex items-center gap-2 px-6 py-3 border border-gray-200 dark:border-surface-700 rounded-xl font-semibold text-sm text-surface-300 hover:bg-surface-800/40 transition-all">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            <path d="M11.5 2a5.5 5.5 0 10.8 4.5M11.5 2v4M11.5 2H7.5" />
-          </svg>
-          Generate New Portfolio
-        </button>
-      </div>
-      {/* Track result banners — admin only */}
-      {trackError && (
-        <div style={{ background: 'rgba(244,63,94,0.06)', border: '1px solid rgba(244,63,94,0.20)', borderRadius: '10px', padding: '16px' }}>
-          <p style={{ color: '#f43f5e', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', fontSize: '13px', fontWeight: 500, margin: 0 }}>
-            {trackError}
-          </p>
-        </div>
-      )}
-      {trackSuccess && (
-        <div style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.20)', borderRadius: '10px', padding: '16px' }}>
-          <p style={{ color: '#10b981', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', fontSize: '13px', fontWeight: 600, margin: '0 0 6px' }}>
-            {trackSuccess.added} position{trackSuccess.added !== 1 ? 's' : ''} added to the live tracker
-          </p>
-          <a
-            href="/#portfolio-tracker"
-            style={{ color: '#0664e8', fontSize: '12px', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', textDecoration: 'underline' }}
-          >
-            View tracker on homepage →
-          </a>
-          {trackSuccess.skipped.length > 0 && (
-            <div style={{ marginTop: '10px' }}>
-              <p style={{ color: '#777a88', fontSize: '12px', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', margin: '0 0 4px' }}>
-                {trackSuccess.skipped.length} skipped:
-              </p>
-              <ul style={{ margin: 0, paddingLeft: '16px' }}>
-                {trackSuccess.skipped.map((s) => (
-                  <li key={s} style={{ color: '#777a88', fontSize: '11px', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif' }}>{s}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
       {/* Disclaimer */}
       <AIDisclosureNote variant="full" />
     </div>
   )
 }
+
 // ─────────────────────────────────────────────
 //  WIZARD STEPPER
 // ─────────────────────────────────────────────
@@ -519,6 +609,7 @@ const WIZARD_STEPS = [
   { n: 3, label: 'Budget'   },
   { n: 4, label: 'Review'   },
 ] as const
+
 function WizardStepper({ step }: { step: number }) {
   return (
     <div className="flex items-start w-full">
@@ -547,6 +638,7 @@ function WizardStepper({ step }: { step: number }) {
     </div>
   )
 }
+
 // ─────────────────────────────────────────────
 //  RISK OPTIONS
 // ─────────────────────────────────────────────
@@ -555,80 +647,13 @@ const RISK_OPTIONS = [
   { value: 'MEDIUM' as RiskAppetite, label: 'Balanced', sub: 'Growth + stability', detail: 'Mix of large-cap and growth stocks. Moderate risk with better upside.', icon: (<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 10l4-4 3 3 5-6" /><path d="M14 4h3v3" /></svg>), activeClass: 'border-amber-400/40 bg-amber-400/8', iconClass: 'bg-amber-400/10 text-amber-400', labelClass: 'text-amber-400' },
   { value: 'HIGH' as RiskAppetite, label: 'Aggressive', sub: 'Maximum growth', detail: 'High-momentum and mid-cap stocks. Higher risk, higher potential reward.', icon: (<svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M2 14l5-5 4 4 5-7" /><path d="M13 6h4v4" /></svg>), activeClass: 'border-rose-400/40 bg-rose-400/8', iconClass: 'bg-rose-400/10 text-rose-400', labelClass: 'text-rose-400' },
 ] as const
-// ─────────────────────────────────────────────
-//  RECENT PORTFOLIOS  (view-only history, last 3)
-// ─────────────────────────────────────────────
-function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime()
-  if (isNaN(then)) return ''
-  const diffMs = Date.now() - then
-  const mins  = Math.floor(diffMs / 60000)
-  if (mins < 1)  return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24)  return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  if (days === 1) return 'yesterday'
-  if (days < 30)  return `${days}d ago`
-  return new Date(iso).toLocaleDateString('en-IN')
-}
-function RecentPortfolios({ items, onOpen }: {
-  items: SavedPortfolio[]
-  onOpen: (p: SavedPortfolio) => void
-}) {
-  if (!items.length) return null
-  return (
-    <div className="flex flex-col gap-3">
-      <p className="text-[11px] font-semibold text-surface-500 uppercase tracking-wider">
-        Your recent portfolios
-      </p>
-      <div className="flex flex-col gap-2">
-        {items.map((p, i) => {
-          const budget    = p.result?.summary?.total_budget ?? p.request?.budget ?? 0
-          const positions = p.result?.summary?.diversification ?? p.result?.portfolio?.length ?? 0
-          const avgScore  = p.result?.summary?.average_score
-          const riskLabel = p.request?.riskAppetite ? (RISK_LABELS[p.request.riskAppetite] ?? p.request.riskAppetite) : ''
-          return (
-            <button
-              key={`${p.generatedAt}-${i}`}
-              type="button"
-              onClick={() => onOpen(p)}
-              className="group flex items-center justify-between gap-4 rounded-xl border border-gray-200 dark:border-surface-800 bg-white dark:bg-surface-900 hover:border-brand-cyan/40 transition-all text-left"
-              style={{ padding: '14px 16px' }}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-brand-cyan/10 border border-brand-cyan/20">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-cyan" aria-hidden="true">
-                    <path d="M2 13V9M6 13V5M10 13V7M14 13V3" />
-                  </svg>
-                </div>
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-sm font-semibold text-surface-900 dark:text-white truncate">
-                    {p.type === 'swing' ? 'Swing' : 'Position'} portfolio · {formatINRCompact(budget)}
-                  </span>
-                  <span className="text-[11px] text-surface-500 truncate">
-                    {positions} positions{riskLabel ? ` · ${riskLabel}` : ''}{avgScore != null ? ` · avg ${Math.round(avgScore)}/100` : ''} · {relativeTime(p.generatedAt)}
-                  </span>
-                </div>
-              </div>
-              <span className="flex items-center gap-1 text-xs font-medium text-surface-500 group-hover:text-brand-cyan transition-colors shrink-0">
-                View
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M4 2l4 4-4 4" />
-                </svg>
-              </span>
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
+
 // ─────────────────────────────────────────────
 //  PORTFOLIO PAGE
 // ─────────────────────────────────────────────
 type PortfolioType = 'swing' | 'position'
 type WizardStep = 1 | 2 | 3 | 4
+
 export default function PortfolioPage() {
   const [step, setStep]             = useState<WizardStep>(1)
   const [direction, setDirection]   = useState<'forward' | 'back'>('forward')
@@ -642,33 +667,13 @@ export default function PortfolioPage() {
   const [currentJob, setCurrentJob] = useState<PortfolioJob | null>(null)
   const [showConfetti, setShowConfetti] = useState(false)
   const [showToast,    setShowToast]    = useState(false)
-  const [restored,     setRestored]     = useState(false)   // ★ FIX 1: track whether mount-restore has run
-  // ★ FIX 1: also read the saved portfolios + clear fn from the store
-  const { savePortfolio, history } = usePortfolioStore()
+
+  const { saveSwingPortfolio, savePositionPortfolio } = usePortfolioStore()
   const swingMutation    = useCreateSwingPortfolio()
   const positionMutation = useCreatePositionPortfolio()
   const mutation         = type === 'swing' ? swingMutation : positionMutation
   const handleProgress   = useCallback((job: PortfolioJob) => { setCurrentJob(job) }, [])
-  // Restore the most recent portfolio on mount. Portfolios are persisted to the
-  // store (localStorage) and survive navigation/refresh; the page reads the
-  // latest one back so returning users don't see an empty wizard.
-  // Runs client-side only (useEffect), so no SSR hydration mismatch.
-  useEffect(() => {
-    if (result || restored) return
-    const latest = history[0]
-    if (latest?.result) {
-      setResult(latest.result)
-      setResultType(latest.type)
-    }
-    setRestored(true)
-  }, [result, restored, history])
-  // Load a specific portfolio from the recent-history list into the result view.
-  function loadFromHistory(p: SavedPortfolio) {
-    setResult(p.result)
-    setResultType(p.type)
-    setRestored(true)
-    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+
   function goNext() {
     if (step === 2 && !risk) { setFormErrors({ riskAppetite: 'Please select a risk level to continue' }); return }
     if (step === 3) {
@@ -682,11 +687,13 @@ export default function PortfolioPage() {
     setDirection('forward')
     setStep((s) => (s + 1) as WizardStep)
   }
+
   function goBack() {
     setFormErrors({})
     setDirection('back')
     setStep((s) => (s - 1) as WizardStep)
   }
+
   async function handleGenerate() {
     track.portfolioBuildStarted(type, Number(budget), risk ?? 'UNKNOWN')
     setCurrentJob({ status: 'queued', progress: 0, result: null, error: null })
@@ -694,15 +701,14 @@ export default function PortfolioPage() {
       let data: PortfolioResponse
       if (type === 'swing') {
         data = await swingMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk!, onProgress: handleProgress })
-        savePortfolio({ type: 'swing', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk! }, result: data })
+        saveSwingPortfolio({ type: 'swing', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk! }, result: data })
       } else {
         data = await positionMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60, onProgress: handleProgress })
-        savePortfolio({ type: 'position', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60 }, result: data })
+        savePositionPortfolio({ type: 'position', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60 }, result: data })
       }
       track.portfolioBuildCompleted(type, data.portfolio?.length ?? 0, Math.round(data.summary?.average_score ?? 0))
       setResult(data)
       setResultType(type)
-      setRestored(true)   // ★ FIX 3: a just-generated result counts as "restored" so the mount effect won't override it
       setCurrentJob(null)
       setShowConfetti(true)
       setShowToast(true)
@@ -711,18 +717,16 @@ export default function PortfolioPage() {
       setCurrentJob(null)
     }
   }
+
   function handleReset() {
-    // "Generate New" returns to a fresh wizard but KEEPS history — the recent
-    // portfolios stay in the list below so the user can still reach them.
-    // setRestored(true) stops the mount-effect from auto-loading the latest
-    // back over the fresh wizard the user just asked for.
     setResult(null); setStep(1); setDirection('forward')
     setBudget(''); setRisk(undefined); setTimePeriod(18)
     setFormErrors({}); setShowToast(false); setCurrentJob(null)
     swingMutation.reset(); positionMutation.reset()
-    setRestored(true)
   }
+
   const isGenerating = mutation.isPending || (currentJob !== null && currentJob.status !== 'complete' && currentJob.status !== 'failed')
+
   return (
     <div className="flex flex-col gap-8" style={{ maxWidth: '880px', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
       {!result && (
@@ -732,6 +736,7 @@ export default function PortfolioPage() {
           <p className="hero-entry-3 text-sm sm:text-base text-surface-400 leading-relaxed mt-1">Answer 3 quick questions — get a fully allocated NSE/BSE portfolio with position sizes and technical reference levels.</p>
         </div>
       )}
+
       {!result ? (
         isGenerating ? (
           <PortfolioProgress job={currentJob} />
@@ -772,8 +777,10 @@ export default function PortfolioPage() {
                 </div>
               </div>
             </div>
+
             <WizardStepper step={step} />
             <div key={step} className={direction === 'forward' ? 'animate-step-in' : 'animate-step-back'}>
+
               {/* ── Step 1 — Strategy ── */}
               {step === 1 && (
                 <div className="flex flex-col gap-4 rounded-2xl p-5 sm:p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}>
@@ -789,6 +796,7 @@ export default function PortfolioPage() {
                     <span style={{ fontFamily: 'var(--font-inter), Inter, sans-serif', fontSize: '12px', color: '#9194a1' }}>Takes 3–5 minutes to generate</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
                     {/* Swing — fully enabled */}
                     <button type="button" onClick={() => setType('swing')}
                       className={cn('relative flex flex-col gap-3 p-5 rounded-xl border text-left transition-all duration-200 active:scale-[0.98]',
@@ -810,6 +818,7 @@ export default function PortfolioPage() {
                         <p className="text-xs text-surface-400 mt-1 leading-relaxed">Short-term trades · 1–4 weeks · higher frequency</p>
                       </div>
                     </button>
+
                     {/* Position — BLOCKED with Coming Soon */}
                     <div className="relative hidden sm:flex flex-col gap-3 p-5 rounded-xl border border-gray-200 dark:border-surface-800 bg-surface-900/30 cursor-not-allowed opacity-80 select-none">
                       {/* Coming soon badge */}
@@ -827,6 +836,7 @@ export default function PortfolioPage() {
                         <p className="text-xs mt-1 leading-relaxed" style={{ color: '#9194a1' }}>Long-term holds · 6 months – 5 years · launching soon</p>
                       </div>
                     </div>
+
                   </div>
                   {/* Trust signals */}
                   <div className="grid grid-cols-3 sm:flex sm:items-center sm:justify-center gap-2 sm:gap-6 pt-1">
@@ -842,6 +852,7 @@ export default function PortfolioPage() {
                   </div>
                 </div>
               )}
+
               {/* ── Step 2 — Risk ── */}
               {step === 2 && (
                 <div className="flex flex-col gap-4 rounded-2xl p-5 sm:p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}>
@@ -875,6 +886,7 @@ export default function PortfolioPage() {
                   </div>
                 </div>
               )}
+
               {/* ── Step 3 — Budget ── */}
               {step === 3 && (
                 <div className="flex flex-col gap-5 rounded-2xl p-5 sm:p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}>
@@ -895,6 +907,7 @@ export default function PortfolioPage() {
                   </div>
                 </div>
               )}
+
               {/* ── Step 4 — Review ── */}
               {step === 4 && (
                 <div className="flex flex-col gap-5">
@@ -931,12 +944,13 @@ export default function PortfolioPage() {
                   <div className="rounded-xl border border-brand-cyan/15 bg-brand-cyan/5 p-4">
                     <p className="text-xs text-surface-400 leading-relaxed flex items-start gap-2">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-brand-cyan shrink-0 mt-0.5"><circle cx="7" cy="7" r="5.5" /><path d="M7 5v3M7 9.5v.5" /></svg>
-                      Portfolio generation scans 240 stocks — takes <strong className="text-surface-300">about 3–4 minutes</strong>.
+                      Portfolio generation scans 240 stocks — takes <strong className="text-surface-300">5–8 minutes</strong>.
                     </p>
                   </div>
                 </div>
               )}
             </div>
+
             {/* Navigation buttons */}
             <div className={cn('flex gap-3', step > 1 ? 'justify-between' : 'justify-end')}>
               {step > 1 && (
@@ -964,13 +978,6 @@ export default function PortfolioPage() {
                 </Button>
               )}
             </div>
-            {/* Recent portfolios — view-only history (last 3). Only shown on
-                the wizard/empty state; clicking one loads it into the result view. */}
-            {history.length > 0 && (
-              <div className="mt-2 pt-6 border-t border-gray-200 dark:border-surface-800">
-                <RecentPortfolios items={history} onOpen={loadFromHistory} />
-              </div>
-            )}
           </div>
         )
       ) : (
@@ -980,6 +987,7 @@ export default function PortfolioPage() {
           </ErrorBoundary>
         </div>
       )}
+
       <Confetti active={showConfetti} />
       <SuccessToast show={showToast} message="Portfolio generated!" description="Your AI-powered allocation is ready." onClose={() => setShowToast(false)} />
     </div>
