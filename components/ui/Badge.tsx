@@ -104,14 +104,29 @@ interface SignalBadgeProps {
   short?:     boolean   // use short label for compact spaces
 }
 
+// Baseline readings (Neutral Setup / No Signal) render as plain muted text
+// instead of a pill — nothing notable to flag, so it shouldn't compete for
+// attention with Bullish/Bearish/Weak Setup.
+const QUIET_SIGNAL_STRENGTHS: SignalStrength[] = ['hold', 'unknown']
+
 export function SignalBadge({ strength, className, showDot = true, short = false }: SignalBadgeProps) {
+  const label = short ? signalLabelShortMap[strength] : signalLabelMap[strength]
+
+  if (QUIET_SIGNAL_STRENGTHS.includes(strength)) {
+    return (
+      <span className={cn('text-[11px] font-medium text-[#9ca3af]', className)}>
+        {label}
+      </span>
+    )
+  }
+
   return (
     <Badge
       color={signalColorMap[strength]}
       dot={showDot}
       className={cn('font-semibold', className)}
     >
-      {short ? signalLabelShortMap[strength] : signalLabelMap[strength]}
+      {label}
     </Badge>
   )
 }
