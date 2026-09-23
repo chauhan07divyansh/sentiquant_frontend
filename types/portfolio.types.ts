@@ -32,6 +32,49 @@ export interface PortfolioSummary {
 export interface PortfolioResponse {
   portfolio: PortfolioHolding[]
   summary: PortfolioSummary
+  job_id?: string   // completed job id — needed to POST /portfolio/track
+}
+
+// ─────────────────────────────────────────────
+//  PER-USER TRACKED PORTFOLIO
+//  Mirrors backend: POST /api/v1/portfolio/track,
+//  GET /api/v1/portfolio/tracked
+// ─────────────────────────────────────────────
+export type TrackedPositionStatus = 'open' | 'partial_closed' | 'closed'
+export type TrackedExitReason = 't1_partial' | 't2_hit' | 'stop_loss_hit'
+
+export interface TrackedPosition {
+  id: string
+  portfolioId: string
+  symbol: string
+  name: string
+  entryPrice: number
+  entryDate: string
+  stopLoss: number
+  t1: number
+  t2: number
+  t3: number
+  allocationAmount: number
+  shares: number
+  aiScore: number
+  status: TrackedPositionStatus
+  percentClosed: number
+  partialExitPrice: number | null
+  partialExitDate: string | null
+  exitPrice: number | null
+  exitDate: string | null
+  exitReason: TrackedExitReason | null
+}
+
+export interface TrackedPortfolio {
+  id: string
+  userId: number
+  budget: number
+  riskAppetite: string
+  strategy: string
+  status: string
+  createdAt: string
+  positions: TrackedPosition[]
 }
 
 // ── Request payloads ──────────────────────────
