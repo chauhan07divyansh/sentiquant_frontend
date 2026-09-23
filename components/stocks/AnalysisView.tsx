@@ -30,17 +30,22 @@ function fmtKey(k: string): string {
 }
 
 const RISK_LABEL: Record<string, string> = {
-  risk_atr:          'ATR',
-  risk_max_drawdown: 'Max Drawdown',
-  risk_risk_level:   'Risk Level',
-  risk_sharpe_ratio: 'Sharpe Ratio',
-  risk_var_95:       'VaR 95',
-  risk_volatility:   'Volatility',
-  risk_beta:         'Beta',
+  risk_atr:              'ATR',
+  risk_max_drawdown:     'Max Drawdown',
+  risk_risk_level:       'Risk Level',
+  risk_sharpe_ratio:     'Sharpe Ratio',
+  risk_var_95:           'VaR 95',
+  risk_volatility:       'Volatility',
+  risk_volatility_pct:   'Volatility %',
+  risk_beta:             'Beta',
 }
 
+// Raw indicator keys arrive Title-Cased with spaces (e.g. "Risk Atr"), not
+// snake_case — normalize separators before the lookup or every RISK_LABEL
+// entry silently misses and falls through to fmtKey() unchanged.
 function displayLabel(k: string): string {
-  return RISK_LABEL[k.toLowerCase()] ?? fmtKey(k)
+  const normalized = k.toLowerCase().replace(/\s+/g, '_')
+  return RISK_LABEL[normalized] ?? fmtKey(k)
 }
 
 // ─── Indicator Info & Classification ──────────────────────────────────────────
@@ -592,6 +597,11 @@ function GroupedIndicators({ indicators, price }: {
     muted:   'border-iron',
   }
 
+  // Baseline/expected readings — de-emphasized as plain muted text instead
+  // of a pill, so the eye goes to what's actually notable (Bullish/Bearish/
+  // Oversold/Overbought/Near/High/High Vol).
+  const QUIET_INDICATOR_LABELS = new Set(['Neutral', 'Moderate', 'Low', 'Medium', 'Low Vol'])
+
   const renderGroup = (label: string, palette: string, items: [string, string | number][]) => (
     <div key={label} className={cn('rounded-xl border bg-inkwell p-4', paletteBorder[palette] ?? 'border-iron')}>
       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-3 text-[#777a88]">{label}</p>
@@ -607,9 +617,15 @@ function GroupedIndicators({ indicators, price }: {
               </span>
               <span className="flex items-center gap-1.5 shrink-0">
                 {badge && (
-                  <Badge color={badge.color} size="sm" className="font-medium tracking-[0.06em]">
-                    {badge.label}
-                  </Badge>
+                  QUIET_INDICATOR_LABELS.has(badge.label) ? (
+                    <span className="text-[11px] font-medium text-[#9ca3af] tracking-[0.06em]">
+                      {badge.label}
+                    </span>
+                  ) : (
+                    <Badge color={badge.color} size="sm" className="font-medium tracking-[0.06em]">
+                      {badge.label}
+                    </Badge>
+                  )
                 )}
                 <span className="font-mono text-xs font-medium text-white tabular-nums">
                   {typeof v === 'number' ? formatNumber(v, 2) : String(v)}
