@@ -1,8 +1,10 @@
 'use client'
 import { Fragment, useState, useCallback, useEffect, useRef } from 'react'
+import Link from 'next/link'
+import { useQueryClient } from '@tanstack/react-query'
 import { Confetti }      from '@/components/ui/Confetti'
 import { SuccessToast }  from '@/components/ui/SuccessToast'
-import { useCreateSwingPortfolio, useCreatePositionPortfolio } from '@/hooks/useQueryHooks'
+import { useCreateSwingPortfolio, useCreatePositionPortfolio, useTrackedPortfolios, queryKeys } from '@/hooks/useQueryHooks'
 import { trackPortfolio } from '@/lib/api/portfolio.api'
 import { usePortfolioStore } from '@/store'
 import { Button } from '@/components/ui/Button'
@@ -133,6 +135,10 @@ function PortfolioResult({ result, type, onReset }: {
   const [userTrackState, setUserTrackState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [userTrackError, setUserTrackError] = useState<string | null>(null)
 
+  // Refreshes the shared tracked-portfolios cache after a successful track so
+  // the Navbar link and "View My Tracked Portfolios" button appear without a reload.
+  const queryClient = useQueryClient()
+
   const tableRef = useRef<HTMLDivElement>(null)
   const [tableScrolled, setTableScrolled] = useState(false)
   const onTableScroll = () => {
@@ -258,6 +264,7 @@ function PortfolioResult({ result, type, onReset }: {
     try {
       await trackPortfolio(result.job_id)
       setUserTrackState('success')
+      queryClient.invalidateQueries({ queryKey: queryKeys.trackedPortfolios })
     } catch (err) {
       setUserTrackState('error')
       setUserTrackError(err instanceof Error ? err.message : 'Could not track this portfolio. Please try again.')
@@ -390,9 +397,9 @@ function PortfolioResult({ result, type, onReset }: {
             <p className="text-xs text-rose-400 mt-1">{userTrackError}</p>
           )}
           {userTrackState === 'success' && (
-            <a href="/portfolio/my-portfolios" className="text-xs text-brand-cyan hover:underline mt-1 w-fit">
+            <Link href="/portfolio/my-portfolios" className="text-xs text-brand-cyan hover:underline mt-1 w-fit">
               View my tracked portfolios →
-            </a>
+            </Link>
           )}
         </div>
         {userTrackState === 'success' ? (
@@ -430,6 +437,7 @@ function PortfolioResult({ result, type, onReset }: {
           </svg>
           Generate New Portfolio
         </button>
+        <TrackedPortfoliosButton />
       </div>
       {/* Track result banners — admin only */}
       {trackError && (
@@ -601,6 +609,25 @@ function PortfolioResult({ result, type, onReset }: {
 }
 
 // ─────────────────────────────────────────────
+//  VIEW MY TRACKED PORTFOLIOS — secondary-weight link.
+//  Renders nothing unless the user has 1+ tracked portfolios
+//  (same shared query + gating as the Navbar's "My Portfolios").
+// ─────────────────────────────────────────────
+function TrackedPortfoliosButton({ className }: { className?: string }) {
+  const { data: trackedPortfolios } = useTrackedPortfolios()
+  if (!trackedPortfolios || trackedPortfolios.length === 0) return null
+  return (
+    <Link href="/portfolio/my-portfolios"
+      className={cn('flex items-center gap-2 px-6 py-3 border border-gray-200 dark:border-surface-700 rounded-xl font-semibold text-sm text-surface-300 hover:bg-surface-800/40 transition-all w-fit', className)}>
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M2 11.5V6l5-3.5L12 6v5.5" /><path d="M5 11.5V8h4v3.5" />
+      </svg>
+      View My Tracked Portfolios
+    </Link>
+  )
+}
+
+// ─────────────────────────────────────────────
 //  WIZARD STEPPER
 // ─────────────────────────────────────────────
 const WIZARD_STEPS = [
@@ -668,7 +695,7 @@ export default function PortfolioPage() {
   const [showConfetti, setShowConfetti] = useState(false)
   const [showToast,    setShowToast]    = useState(false)
 
-  const { savePortfolio } = usePortfolioStore()
+  const { saveSwingPortfolio, savePositionPortfolio } = usePortfolioStore()
   const swingMutation    = useCreateSwingPortfolio()
   const positionMutation = useCreatePositionPortfolio()
   const mutation         = type === 'swing' ? swingMutation : positionMutation
@@ -701,10 +728,10 @@ export default function PortfolioPage() {
       let data: PortfolioResponse
       if (type === 'swing') {
         data = await swingMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk!, onProgress: handleProgress })
-        savePortfolio({ type: 'swing', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk! }, result: data })
+        saveSwingPortfolio({ type: 'swing', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk! }, result: data })
       } else {
         data = await positionMutation.mutateAsync({ budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60, onProgress: handleProgress })
-        savePortfolio({ type: 'position', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60 }, result: data })
+        savePositionPortfolio({ type: 'position', generatedAt: new Date().toISOString(), request: { budget: Number(budget), riskAppetite: risk!, timePeriod: timePeriod as 9 | 18 | 36 | 60 }, result: data })
       }
       track.portfolioBuildCompleted(type, data.portfolio?.length ?? 0, Math.round(data.summary?.average_score ?? 0))
       setResult(data)
@@ -734,6 +761,7 @@ export default function PortfolioPage() {
           <span className="hero-entry-1 block text-xs font-semibold text-brand-cyan uppercase tracking-widest">Portfolio builder</span>
           <h1 className="hero-entry-2 font-display text-3xl sm:text-4xl font-bold text-surface-900 dark:text-white tracking-tight leading-[1.05]">Build your portfolio</h1>
           <p className="hero-entry-3 text-sm sm:text-base text-surface-400 leading-relaxed mt-1">Answer 3 quick questions — get a fully allocated NSE/BSE portfolio with position sizes and technical reference levels.</p>
+          {!isGenerating && <TrackedPortfoliosButton className="hero-entry-3 mt-3" />}
         </div>
       )}
 
