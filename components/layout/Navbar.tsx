@@ -2,19 +2,41 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { useAuth } from '@/hooks/useAuth'
+// NEW: pulls the user's tracked-portfolio count to conditionally show "My Portfolios"
+// ⚠️ ASSUMPTION — verify this import path + return shape against the real
+// hooks/useQueryHooks.ts before trusting this in production.
+import { useTrackedPortfolios } from '@/hooks/useQueryHooks'
 
 // ─────────────────────────────────────────────
-//  NAV LINKS — marketing site
+//  BASE NAV LINKS — marketing site
+//  "My Portfolios" is appended conditionally inside the component,
+//  not listed here, since it depends on auth + tracked-portfolio state.
 // ─────────────────────────────────────────────
-const NAV_LINKS = [
+const BASE_NAV_LINKS = [
   { href: '/',          label: 'Home' },
   { href: '/stocks',    label: 'Stocks' },
   { href: '/portfolio', label: 'Portfolio' },
   { href: '/pricing',   label: 'Pricing' },
 ] as const
+
+// NEW: finds which single link should be "active" — the LONGEST matching
+// href wins, so /portfolio/my-portfolios activates "My Portfolios" and NOT
+// "Portfolio", even though both hrefs are prefixes of that path.
+function getActiveHref(pathname: string, links: readonly { href: string }[]): string | null {
+  let best: string | null = null
+  for (const { href } of links) {
+    const matches = href === '/'
+      ? pathname === '/'
+      : (pathname === href || pathname.startsWith(href + '/'))
+    if (matches && (best === null || href.length > best.length)) {
+      best = href
+    }
+  }
+  return best
+}
 
 // ─────────────────────────────────────────────
 //  LOGO
@@ -48,6 +70,25 @@ export function Navbar({ isDashboard = false }: { isDashboard?: boolean }) {
   const user            = session?.user ?? null
   const { logout }      = useAuth()
 
+  // NEW: fetch tracked-portfolio count (hook should internally no-op/skip
+  // the request when logged out — confirm this against the real hook).
+  const { data: trackedPortfolios } = useTrackedPortfolios()
+  const hasTrackedPortfolios = isAuthenticated && (trackedPortfolios?.length ?? 0) > 0
+
+  // NEW: build the final nav link list, inserting "My Portfolios" right
+  // after "Portfolio" only when the user has something to show there.
+  const NAV_LINKS = useMemo(() => {
+    if (!hasTrackedPortfolios) return BASE_NAV_LINKS
+    const links: { href: string; label: string }[] = []
+    for (const link of BASE_NAV_LINKS) {
+      links.push(link)
+      if (link.href === '/portfolio') {
+        links.push({ href: '/portfolio/my-portfolios', label: 'My Portfolios' })
+      }
+    }
+    return links
+  }, [hasTrackedPortfolios])
+
   const [menuOpen,     setMenuOpen]     = useState(false)
   const [scrolled,     setScrolled]     = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -61,6 +102,11 @@ export function Navbar({ isDashboard = false }: { isDashboard?: boolean }) {
   const [pillStyle, setPillStyle] = useState({ left: 0, scaleX: 0, opacity: 0 })
   const [pillReady, setPillReady] = useState(false)
   const mountedRef = useRef(false)
+
+  // NEW: single source of truth for which link is active — replaces the
+  // old per-link `pathname.startsWith(href)` check that let two links
+  // claim "active" at once.
+  const activeHref = getActiveHref(pathname, NAV_LINKS)
 
   const initials = (user?.name ?? '')
     .split(' ')
@@ -102,16 +148,13 @@ export function Navbar({ isDashboard = false }: { isDashboard?: boolean }) {
     return () => document.removeEventListener('keydown', handler)
   }, [dropdownOpen])
 
-  // ── Change 1: measure pill position on mount and route change ──
-  // useLayoutEffect runs synchronously before paint, so the pill snaps
-  // to the correct position on first render without animating in from 0.
+  // ── Change 1: measure pill position on mount, route change, and
+  // whenever NAV_LINKS itself changes length (My Portfolios appearing) ──
   useLayoutEffect(() => {
     function measure() {
       if (!navRef.current) return
       const navRect     = navRef.current.getBoundingClientRect()
-      const activeIndex = NAV_LINKS.findIndex(({ href }) =>
-        pathname === href || (href !== '/' && pathname.startsWith(href))
-      )
+      const activeIndex = NAV_LINKS.findIndex(({ href }) => href === activeHref)
       const linkEl = activeIndex >= 0 ? linkRefs.current[activeIndex] : null
       if (!linkEl) {
         setPillStyle(s => ({ ...s, opacity: 0 }))
@@ -136,7 +179,7 @@ export function Navbar({ isDashboard = false }: { isDashboard?: boolean }) {
 
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
-  }, [pathname])
+  }, [pathname, NAV_LINKS, activeHref])
 
   return (
     <header
@@ -191,7 +234,7 @@ export function Navbar({ isDashboard = false }: { isDashboard?: boolean }) {
           />
 
           {NAV_LINKS.map(({ href, label }, i) => {
-            const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
+            const isActive = href === activeHref
             return (
               <Link
                 key={href}
@@ -344,7 +387,7 @@ export function Navbar({ isDashboard = false }: { isDashboard?: boolean }) {
             style={{ borderBottom: '1px solid #2e3038' }}
           >
             {NAV_LINKS.map(({ href, label }, i) => {
-              const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
+              const isActive = href === activeHref
               return (
                 <Link
                   key={href}
