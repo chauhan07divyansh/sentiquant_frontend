@@ -11,9 +11,9 @@ import {
   type UseMutationOptions,
 } from '@tanstack/react-query'
 import { getAllStocks, analyzeSwing, analyzePosition, compareStrategies } from '@/lib/api/stocks.api'
-import { createSwingPortfolio, createPositionPortfolio, type PortfolioJob } from '@/lib/api/portfolio.api'
+import { createSwingPortfolio, createPositionPortfolio, getTrackedPortfolios, type PortfolioJob } from '@/lib/api/portfolio.api'
 import type { StockListResponse, StockAnalysis, CompareResponse } from '@/types/stock.types'
-import type { PortfolioResponse, SwingPortfolioRequest, PositionPortfolioRequest } from '@/types/portfolio.types'
+import type { PortfolioResponse, SwingPortfolioRequest, PositionPortfolioRequest, TrackedPortfolio } from '@/types/portfolio.types'
 import { DegradedModeError } from '@/types/api.types'
 
 // ── Shared constants ──────────────────────────
@@ -25,6 +25,7 @@ export const queryKeys = {
   swingAnalysis:   (symbol: string) => ['analysis', 'swing',    symbol.toUpperCase()] as const,
   positionAnalysis:(symbol: string) => ['analysis', 'position', symbol.toUpperCase()] as const,
   compare:         (symbol: string) => ['compare',              symbol.toUpperCase()] as const,
+  trackedPortfolios: ['portfolio', 'tracked'] as const,
 }
 
 // ── Extended request types with optional progress callback ──
@@ -111,6 +112,25 @@ export function useCompareStrategies(
       if (error instanceof DegradedModeError) return false
       return failCount < 1
     },
+    ...options,
+  })
+}
+
+// ─────────────────────────────────────────────
+//  useTrackedPortfolios
+//  The logged-in user's tracked portfolios. Shared by the
+//  Navbar ("My Portfolios" link), the /portfolio result view
+//  and /portfolio/my-portfolios — one cached request serves all.
+//  Invalidate queryKeys.trackedPortfolios after tracking.
+// ─────────────────────────────────────────────
+export function useTrackedPortfolios(
+  options?: Partial<UseQueryOptions<TrackedPortfolio[]>>
+) {
+  return useQuery<TrackedPortfolio[]>({
+    queryKey:  queryKeys.trackedPortfolios,
+    queryFn:   getTrackedPortfolios,
+    staleTime: FIVE_MINUTES,
+    retry: 1,
     ...options,
   })
 }
