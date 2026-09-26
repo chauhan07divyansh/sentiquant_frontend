@@ -2,19 +2,36 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useAuth } from '@/hooks/useAuth'
+import { useTrackedPortfolios } from '@/hooks/useQueryHooks'
 
 // ─────────────────────────────────────────────
 //  NAV LINKS — marketing site
 // ─────────────────────────────────────────────
-const NAV_LINKS = [
+type NavLink = { href: string; label: string }
+
+const NAV_LINKS: readonly NavLink[] = [
   { href: '/',          label: 'Home' },
   { href: '/stocks',    label: 'Stocks' },
   { href: '/portfolio', label: 'Portfolio' },
   { href: '/pricing',   label: 'Pricing' },
-] as const
+]
+
+// Shown after "Portfolio" only for logged-in users with 1+ tracked portfolios
+const MY_PORTFOLIOS_LINK: NavLink = { href: '/portfolio/my-portfolios', label: 'My Portfolios' }
+
+// Longest matching href wins, so /portfolio/my-portfolios lights up
+// "My Portfolios" rather than its parent "Portfolio".
+function getActiveHref(links: readonly NavLink[], pathname: string): string | null {
+  let best: string | null = null
+  for (const { href } of links) {
+    const matches = pathname === href || (href !== '/' && pathname.startsWith(href))
+    if (matches && (best === null || href.length > best.length)) best = href
+  }
+  return best
+}
 
 // ─────────────────────────────────────────────
 //  LOGO
@@ -47,6 +64,16 @@ export function Navbar({ isDashboard = false }: { isDashboard?: boolean }) {
   const isLoading       = status === 'loading'
   const user            = session?.user ?? null
   const { logout }      = useAuth()
+
+  // Shared, 5-min cached query (same one /portfolio uses) — only runs when logged in
+  const { data: trackedPortfolios } = useTrackedPortfolios({ enabled: isAuthenticated })
+  const showMyPortfolios = isAuthenticated && (trackedPortfolios?.length ?? 0) > 0
+  const navLinks = useMemo<readonly NavLink[]>(() => {
+    if (!showMyPortfolios) return NAV_LINKS
+    const i = NAV_LINKS.findIndex(({ href }) => href === '/portfolio') + 1
+    return [...NAV_LINKS.slice(0, i), MY_PORTFOLIOS_LINK, ...NAV_LINKS.slice(i)]
+  }, [showMyPortfolios])
+  const activeHref = getActiveHref(navLinks, pathname)
 
   const [menuOpen,     setMenuOpen]     = useState(false)
   const [scrolled,     setScrolled]     = useState(false)
@@ -109,9 +136,7 @@ export function Navbar({ isDashboard = false }: { isDashboard?: boolean }) {
     function measure() {
       if (!navRef.current) return
       const navRect     = navRef.current.getBoundingClientRect()
-      const activeIndex = NAV_LINKS.findIndex(({ href }) =>
-        pathname === href || (href !== '/' && pathname.startsWith(href))
-      )
+      const activeIndex = navLinks.findIndex(({ href }) => href === activeHref)
       const linkEl = activeIndex >= 0 ? linkRefs.current[activeIndex] : null
       if (!linkEl) {
         setPillStyle(s => ({ ...s, opacity: 0 }))
@@ -136,7 +161,7 @@ export function Navbar({ isDashboard = false }: { isDashboard?: boolean }) {
 
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
-  }, [pathname])
+  }, [pathname, navLinks, activeHref])
 
   return (
     <header
@@ -190,8 +215,8 @@ export function Navbar({ isDashboard = false }: { isDashboard?: boolean }) {
             }}
           />
 
-          {NAV_LINKS.map(({ href, label }, i) => {
-            const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
+          {navLinks.map(({ href, label }, i) => {
+            const isActive = href === activeHref
             return (
               <Link
                 key={href}
@@ -343,8 +368,8 @@ export function Navbar({ isDashboard = false }: { isDashboard?: boolean }) {
             className="py-3 px-4 flex flex-col gap-1"
             style={{ borderBottom: '1px solid #2e3038' }}
           >
-            {NAV_LINKS.map(({ href, label }, i) => {
-              const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
+            {navLinks.map(({ href, label }, i) => {
+              const isActive = href === activeHref
               return (
                 <Link
                   key={href}
