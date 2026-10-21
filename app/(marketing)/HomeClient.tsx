@@ -1088,7 +1088,6 @@ function BottomCTASection() {
             href="https://whatsapp.com/channel/0029VbCaqhUF1YlZowtQOQ1g"
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => { try { track.outbound?.('whatsapp_channel', 'bottom_cta') } catch {} }}
             className="inline-flex items-center gap-2.5 transition-colors duration-150"
             style={{
               border: '1px solid #2e3038',
